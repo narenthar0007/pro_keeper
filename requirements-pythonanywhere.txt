@@ -1,0 +1,9 @@
+# PythonAnywhere: use Python 3.12+ (see DEPLOY_PYTHONANYWHERE.md).
+# django-unfold>=0.104 requires Python 3.12; Python 3.10 max is unfold 0.81 (too old for this project).
+
+Django>=4.2,<7
+djangorestframework>=3.14
+Pillow>=10.0
+reportlab>=4.0
+django-unfold>=0.104,<1
+whitenoise>=6.6

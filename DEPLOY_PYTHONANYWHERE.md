@@ -29,17 +29,27 @@ Replace `YOURUSERNAME` with your PythonAnywhere login everywhere below.
 
 ## 3. Clone and install
 
-Run (change nothing if your username matches paths):
+Run (use **Python 3.12** — required for `django-unfold`; **3.10 will fail** on `pip install`):
 
 ```bash
 cd ~
 git clone https://github.com/narenthar0007/pro_keeper.git
 cd pro_keeper
-mkvirtualenv --python=/usr/bin/python3.10 prokeeper
-pip install -r requirements.txt
+python3.12 --version
+mkvirtualenv --python=/usr/bin/python3.12 prokeeper
+pip install -r requirements-pythonanywhere.txt
 ```
 
-If `python3.10` is missing, try `python3.11` in the `mkvirtualenv` line.
+If `/usr/bin/python3.12` is missing, try `which python3.12` or check **Web** → create app → which Python versions are offered. Use that same version for `mkvirtualenv`.
+
+If you already created a **3.10** venv and install failed, recreate it:
+
+```bash
+rmvirtualenv prokeeper
+mkvirtualenv --python=/usr/bin/python3.12 prokeeper
+cd ~/pro_keeper
+pip install -r requirements-pythonanywhere.txt
+```
 
 **Do not set `DATABASE_URL`** — the app uses `db.sqlite3` in the project folder.
 
