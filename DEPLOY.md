@@ -1,6 +1,9 @@
-# Deploy PropKeep (Render)
+# Deploy PropKeep
 
-This project is ready for **Render** (free tier works for a demo).
+- **PythonAnywhere (free, recommended):** see [DEPLOY_PYTHONANYWHERE.md](DEPLOY_PYTHONANYWHERE.md)
+- **Render (needs paid Postgres for Blueprint):** see below
+
+## Render
 
 ## What was prepared
 

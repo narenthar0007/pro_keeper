@@ -1,0 +1,26 @@
+# Copy this into PythonAnywhere's WSGI file (Web tab → your site → WSGI configuration).
+# Replace YOURUSERNAME with your PythonAnywhere login (e.g. narenthar).
+
+import os
+import sys
+
+PROJECT_HOME = '/home/YOURUSERNAME/pro_keeper'
+if PROJECT_HOME not in sys.path:
+    sys.path.insert(0, PROJECT_HOME)
+
+os.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings'
+
+# Production on PythonAnywhere (free tier uses SQLite — do not set DATABASE_URL)
+os.environ.setdefault('DEBUG', 'False')
+os.environ.setdefault('ALLOWED_HOSTS', 'YOURUSERNAME.pythonanywhere.com')
+os.environ.setdefault(
+    'CSRF_TRUSTED_ORIGINS',
+    'https://YOURUSERNAME.pythonanywhere.com',
+)
+os.environ.setdefault('SECURE_SSL_REDIRECT', 'False')
+# Paste a long random key from: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+os.environ.setdefault('SECRET_KEY', 'REPLACE-WITH-A-LONG-RANDOM-SECRET-KEY')
+
+from django.core.wsgi import get_wsgi_application
+
+application = get_wsgi_application()
