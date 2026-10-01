@@ -155,9 +155,29 @@ class Migration(migrations.Migration):
             field=models.CharField(default='PropKeep', help_text='Brand display name', max_length=80),
         ),
         migrations.RunPython(migrate_brands, migrations.RunPython.noop),
-        migrations.AlterField(
-            model_name='brand',
-            name='slug',
-            field=models.SlugField(default='propkeep', max_length=80, unique=True),
+        # Avoid Django/Postgres double-creating the varchar_pattern_ops
+        # "_like" index when flipping SlugField unique=False -> unique=True.
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AlterField(
+                    model_name='brand',
+                    name='slug',
+                    field=models.SlugField(default='propkeep', max_length=80, unique=True),
+                ),
+            ],
+            database_operations=[
+                migrations.RunSQL(
+                    sql=[
+                        'CREATE UNIQUE INDEX IF NOT EXISTS accounts_brand_slug_key '
+                        'ON accounts_brand (slug);',
+                        'CREATE INDEX IF NOT EXISTS accounts_brand_slug_21841905_like '
+                        'ON accounts_brand (slug varchar_pattern_ops);',
+                    ],
+                    reverse_sql=[
+                        'DROP INDEX IF EXISTS accounts_brand_slug_21841905_like;',
+                        'DROP INDEX IF EXISTS accounts_brand_slug_key;',
+                    ],
+                ),
+            ],
         ),
     ]
