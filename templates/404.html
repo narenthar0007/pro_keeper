@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Page not found — PropKeep{% endblock %}
+
+{% block content %}
+<article class="status-page">
+  <p class="status-code" aria-hidden="true">404</p>
+  {% ui_page_header title="Page not found" subtitle="That address is not in PropKeep." tooltip="This URL is not mapped to a screen." %}
+  <ul class="messages ui-alerts">
+    {% ui_alert text="Check the URL, or go back to listings and the dashboard." level="warn" %}
+  </ul>
+  {% ui_empty text="No page matches this URL." %}
+  <div class="actions" style="margin-top:1rem">
+    {% ui_button label="Go home" href="/" variant="primary" %}
+    {% ui_button label="Browse listings" href="/" variant="secondary" %}
+  </div>
+</article>
+{% endblock %}

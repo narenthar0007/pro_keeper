@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Reports — HRMS{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+<section class="panel">
+  <h2>Decode punch code</h2>
+  <form method="post">
+    {% csrf_token %}
+    {% ui_form form=form submit_label="Decode" %}
+  </form>
+  {% if decoded %}
+  <dl>
+    <dt>Emp ID last 3</dt><dd>{{ decoded.emp_id_last3 }}</dd>
+    <dt>Name first 3</dt><dd>{{ decoded.name_first3 }}</dd>
+    <dt>Lat % 100</dt><dd>{{ decoded.lat_mod100 }}</dd>
+    <dt>Lng % 100</dt><dd>{{ decoded.lng_mod100 }}</dd>
+    <dt>Day</dt><dd>{{ decoded.day_of_month }}</dd>
+    <dt>Hour</dt><dd>{{ decoded.hour }}</dd>
+    <dt>Type</dt><dd>{{ decoded.type }}</dd>
+  </dl>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{{ target.username }} — Admin{% endblock %}
+
+{% block content %}
+<div class="section-head">
+  <div>
+    <p class="hero-kicker"><a href="{% url 'staff_users' %}">Users</a> / detail</p>
+    <h1>{{ target.username }}</h1>
+    <p class="meta">{{ target.email|default:"No email" }} · joined {{ target.date_joined|date:"d M Y" }}</p>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <p class="label">Active</p>
+    <p class="value" style="font-size:1.2rem">{% if target.is_active %}Yes{% else %}No{% endif %}</p>
+  </div>
+  <div class="stat">
+    <p class="label">Staff</p>
+    <p class="value" style="font-size:1.2rem">{% if target.is_staff %}Yes{% else %}No{% endif %}</p>
+  </div>
+  <div class="stat">
+    <p class="label">Superuser</p>
+    <p class="value" style="font-size:1.2rem">{% if target.is_superuser %}Yes{% else %}No{% endif %}</p>
+  </div>
+  <div class="stat">
+    <p class="label">Last login</p>
+    <p class="value" style="font-size:1.05rem">{% if target.last_login %}{{ target.last_login|date:"d M Y H:i" }}{% else %}Never{% endif %}</p>
+  </div>
+</div>
+
+<section class="panel">
+  <h2>Manage access</h2>
+  <div class="actions">
+    {% if target.is_active %}
+      <form method="post" action="{% url 'staff_user_toggle' target.pk %}">{% csrf_token %}<input type="hidden" name="action" value="deactivate"><button class="btn btn-danger btn-sm" type="submit">Deactivate</button></form>
+    {% else %}
+      <form method="post" action="{% url 'staff_user_toggle' target.pk %}">{% csrf_token %}<input type="hidden" name="action" value="activate"><button class="btn btn-primary btn-sm" type="submit">Activate</button></form>
+    {% endif %}
+    {% if target.is_staff %}
+      <form method="post" action="{% url 'staff_user_toggle' target.pk %}">{% csrf_token %}<input type="hidden" name="action" value="remove_staff"><button class="btn btn-secondary btn-sm" type="submit">Remove staff</button></form>
+    {% else %}
+      <form method="post" action="{% url 'staff_user_toggle' target.pk %}">{% csrf_token %}<input type="hidden" name="action" value="make_staff"><button class="btn btn-secondary btn-sm" type="submit">Make staff</button></form>
+    {% endif %}
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Recent activity for this user</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>When</th>
+        <th>Action</th>
+        <th>Request</th>
+        <th>IP</th>
+        <th>Message</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td>{{ log.created_at|date:"d M Y H:i:s" }}</td>
+        <td><span class="badge">{{ log.get_action_display }}</span></td>
+        <td class="meta">{{ log.method }} {{ log.path }}{% if log.status_code %} ({{ log.status_code }}){% endif %}</td>
+        <td>{{ log.ip_address|default:"—" }}</td>
+        <td>{{ log.message }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="empty">No activity yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "accounts/admin/base_admin.html" %}
+{% load ui %}
+
+{% block title %}Privileges — Admin{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+
+<form method="post">
+  {% csrf_token %}
+  <div class="detail-grid">
+    <section class="panel">
+      {% ui_heading text="Owner privileges" level=2 %}
+      <div class="privilege-list">
+        {% for priv in owner_privs %}
+        <label class="privilege-item">
+          <input type="checkbox" name="priv_{{ priv.pk }}" {% if priv.enabled %}checked{% endif %}>
+          <span>
+            <strong>{{ priv.label }}</strong><br>
+            <span class="meta">{{ priv.code }}</span>
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="panel">
+      {% ui_heading text="Tenant privileges" level=2 %}
+      <div class="privilege-list">
+        {% for priv in tenant_privs %}
+        <label class="privilege-item">
+          <input type="checkbox" name="priv_{{ priv.pk }}" {% if priv.enabled %}checked{% endif %}>
+          <span>
+            <strong>{{ priv.label }}</strong><br>
+            <span class="meta">{{ priv.code }}</span>
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="panel">
+      {% ui_heading text="Manager privileges" level=2 %}
+      <div class="privilege-list">
+        {% for priv in manager_privs %}
+        <label class="privilege-item">
+          <input type="checkbox" name="priv_{{ priv.pk }}" {% if priv.enabled %}checked{% endif %}>
+          <span>
+            <strong>{{ priv.label }}</strong><br>
+            <span class="meta">{{ priv.code }}</span>
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="panel">
+      {% ui_heading text="Employee privileges" level=2 %}
+      <div class="privilege-list">
+        {% for priv in employee_privs %}
+        <label class="privilege-item">
+          <input type="checkbox" name="priv_{{ priv.pk }}" {% if priv.enabled %}checked{% endif %}>
+          <span>
+            <strong>{{ priv.label }}</strong><br>
+            <span class="meta">{{ priv.code }}</span>
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+  <div class="actions">
+    {% ui_button label="Save privileges" variant="primary" type="submit" %}
+  </div>
+</form>
+{% endblock %}

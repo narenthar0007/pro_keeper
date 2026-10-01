@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Login — PropKeep{% endblock %}
+
+{% block content %}
+{% ui_form form=form title="Sign in" kicker="Secure login" subtitle="Use the username/password created by admin (Owner or Tenant), or your admin account." submit_label="Login" footer_html=login_footer %}
+{% endblock %}

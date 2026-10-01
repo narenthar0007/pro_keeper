@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}All users — Admin{% endblock %}
+
+{% block content %}
+<div class="section-head">
+  <div>
+    <p class="hero-kicker"><a href="{% url 'staff_dashboard' %}">Admin</a> / users</p>
+    <h1>All users</h1>
+  </div>
+</div>
+
+<form class="filters" method="get">
+  <div style="grid-column: span 2">
+    <label for="q">Search</label>
+    <input id="q" type="text" name="q" value="{{ q }}" placeholder="Username or email">
+  </div>
+  <div>
+    <button class="btn btn-primary" type="submit">Search</button>
+  </div>
+</form>
+
+<section class="panel">
+  <table>
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Email</th>
+        <th>Joined</th>
+        <th>Last login</th>
+        <th>Logs</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in page %}
+      <tr>
+        <td><a href="{% url 'staff_user_detail' u.pk %}">{{ u.username }}</a></td>
+        <td>{{ u.email|default:"—" }}</td>
+        <td>{{ u.date_joined|date:"d M Y H:i" }}</td>
+        <td>{% if u.last_login %}{{ u.last_login|date:"d M Y H:i" }}{% else %}Never{% endif %}</td>
+        <td>{{ u.log_count }}</td>
+        <td>
+          {% if u.is_staff %}<span class="badge">Staff</span>{% endif %}
+          {% if u.is_active %}<span class="badge vacant">Active</span>{% else %}<span class="badge occupied">Inactive</span>{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="empty">No users found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if page.has_other_pages %}
+  <div class="actions">
+    {% if page.has_previous %}
+      <a class="btn btn-secondary btn-sm" href="?page={{ page.previous_page_number }}&q={{ q }}">Previous</a>
+    {% endif %}
+    <span class="meta">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}
+      <a class="btn btn-secondary btn-sm" href="?page={{ page.next_page_number }}&q={{ q }}">Next</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

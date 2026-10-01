@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Delete {{ property.title }} — PropKeep{% endblock %}
+
+{% block content %}
+<article class="status-page">
+  {% ui_page_header title="Delete property?" subtitle=property.title tooltip="This cannot be undone." %}
+  <ul class="messages ui-alerts">
+    {% ui_alert text="This permanently removes the listing, tenants, and payments." level="error" %}
+  </ul>
+  {% ui_empty text="Confirm only if you are sure this listing should be removed." %}
+  <form method="post" style="margin-top:1rem">
+    {% csrf_token %}
+    {% url 'property_manage' property.pk as cancel_url %}
+    <div class="actions">
+      {% ui_button label="Yes, delete" variant="danger" type="submit" %}
+      {% ui_button label="Cancel" href=cancel_url variant="secondary" %}
+    </div>
+  </form>
+</article>
+{% endblock %}

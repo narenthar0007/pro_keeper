@@ -1,0 +1,92 @@
+{% if field.type == 'hidden' %}
+<input type="hidden" name="{{ field.name }}" value="{{ field.value }}" {% if field.id %}id="{{ field.id }}"{% endif %}>
+{% elif field.type == 'checkbox' %}
+<div class="ui-field ui-field--checkbox form-field{% if field.span %} ui-span-{{ field.span }}{% endif %} {{ field.class_name }}">
+  <label class="checkbox-row" for="{{ field.id }}">
+    <input
+      type="checkbox"
+      id="{{ field.id }}"
+      name="{{ field.name }}"
+      value="1"
+      {% if field.checked %}checked{% endif %}
+      {% if field.required %}required{% endif %}
+      {% if field.disabled %}disabled{% endif %}
+      {% if field.attrs %}{{ field.attrs|safe }}{% endif %}
+    >
+    <span>{{ field.label }}</span>
+    {% if field.tooltip %}<button type="button" class="ui-tip" aria-label="More info" data-tooltip="{{ field.tooltip }}" title="{{ field.tooltip }}">i</button>{% endif %}
+  </label>
+  {% if field.help_text and field.help_text != field.tooltip %}<p class="meta">{{ field.help_text }}</p>{% endif %}
+  {% for err in field.errors %}<p class="ui-field-error">{{ err }}</p>{% endfor %}
+</div>
+{% else %}
+<div class="ui-field form-field{% if field.span %} ui-span-{{ field.span }}{% endif %} {{ field.class_name }}">
+  {% if field.label %}
+  <label for="{{ field.id }}">
+    <span>{{ field.label }}</span>
+    {% if field.tooltip %}<button type="button" class="ui-tip" aria-label="More info" data-tooltip="{{ field.tooltip }}" title="{{ field.tooltip }}">i</button>{% endif %}
+  </label>
+  {% endif %}
+  {% if field.type == 'select' %}
+  <select
+    id="{{ field.id }}"
+    name="{{ field.name }}"
+    {% if field.required %}required{% endif %}
+    {% if field.disabled %}disabled{% endif %}
+    {% if field.attrs %}{{ field.attrs|safe }}{% endif %}
+  >
+    {% for choice in field.choices %}
+      <option value="{{ choice.value }}" {% if field.value|stringformat:"s" == choice.value|stringformat:"s" %}selected{% endif %}>{{ choice.label }}</option>
+    {% endfor %}
+  </select>
+  {% elif field.type == 'select-multiple' %}
+  <select
+    id="{{ field.id }}"
+    name="{{ field.name }}"
+    multiple
+    {% if field.required %}required{% endif %}
+    {% if field.disabled %}disabled{% endif %}
+    {% if field.attrs %}{{ field.attrs|safe }}{% endif %}
+  >
+    {% for choice in field.choices %}
+      <option value="{{ choice.value }}" {% if choice.value in field.value or choice.value|stringformat:"s" in field.value %}selected{% endif %}>{{ choice.label }}</option>
+    {% endfor %}
+  </select>
+  {% elif field.type == 'textarea' %}
+  <textarea
+    id="{{ field.id }}"
+    name="{{ field.name }}"
+    rows="{{ field.rows }}"
+    placeholder="{{ field.placeholder }}"
+    {% if field.required %}required{% endif %}
+    {% if field.disabled %}disabled{% endif %}
+    {% if field.attrs %}{{ field.attrs|safe }}{% endif %}
+  >{{ field.value }}</textarea>
+  {% elif field.type == 'file' %}
+  <input
+    type="file"
+    id="{{ field.id }}"
+    name="{{ field.name }}"
+    {% if field.required %}required{% endif %}
+    {% if field.disabled %}disabled{% endif %}
+    {% if field.attrs %}{{ field.attrs|safe }}{% endif %}
+  >
+  {% else %}
+  <input
+    type="{{ field.type }}"
+    id="{{ field.id }}"
+    name="{{ field.name }}"
+    value="{{ field.value }}"
+    placeholder="{{ field.placeholder }}"
+    {% if field.min != '' %}min="{{ field.min }}"{% endif %}
+    {% if field.max != '' %}max="{{ field.max }}"{% endif %}
+    {% if field.step != '' %}step="{{ field.step }}"{% endif %}
+    {% if field.required %}required{% endif %}
+    {% if field.disabled %}disabled{% endif %}
+    {% if field.attrs %}{{ field.attrs|safe }}{% endif %}
+  >
+  {% endif %}
+  {% if field.help_text %}<p class="meta">{{ field.help_text }}</p>{% endif %}
+  {% for err in field.errors %}<p class="ui-field-error">{{ err }}</p>{% endfor %}
+</div>
+{% endif %}

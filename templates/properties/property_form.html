@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{% if mode == 'add' %}Add property{% else %}Edit property{% endif %} — PropKeep{% endblock %}
+
+{% block content %}
+<section class="panel form-wide">
+  {% if mode == 'add' %}
+  {% ui_page_header title="Add property" subtitle="Fill the details below. Address and rent fields sit side by side." tooltip="Switch listing type to show rent or sale fields." %}
+  {% else %}
+  {% ui_page_header title="Edit property" subtitle="Fill the details below. Address and rent fields sit side by side." %}
+  {% endif %}
+
+  <form method="post" class="property-form" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <ul class="errorlist">{{ form.non_field_errors }}</ul>
+    {% endif %}
+
+    <div class="form-section">
+      {% ui_heading text="Basics" level=2 %}
+      <div class="form-grid">
+        <div class="form-field full">
+          <label for="{{ form.title.id_for_label }}">Title</label>
+          {{ form.title }}
+          {{ form.title.errors }}
+        </div>
+        <div class="form-field full">
+          <label for="{{ form.description.id_for_label }}">Description</label>
+          {{ form.description }}
+          {{ form.description.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.listing_type.id_for_label }}">Listing type</label>
+          {{ form.listing_type }}
+          {{ form.listing_type.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.building.id_for_label }}">Building (optional)</label>
+          {{ form.building }}
+          {{ form.building.errors }}
+          {% if form.building.help_text %}<p class="meta">{{ form.building.help_text }}</p>{% endif %}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.unit_number.id_for_label }}">Unit number</label>
+          {{ form.unit_number }}
+          {{ form.unit_number.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.floor_number.id_for_label }}">Floor</label>
+          {{ form.floor_number }}
+          {{ form.floor_number.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.property_type.id_for_label }}">Property type</label>
+          {{ form.property_type }}
+          {{ form.property_type.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.contact_phone.id_for_label }}">Contact phone</label>
+          {{ form.contact_phone }}
+          {{ form.contact_phone.errors }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      {% ui_heading text="Address" level=2 %}
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="{{ form.door_number.id_for_label }}">Door number</label>
+          {{ form.door_number }}
+          {{ form.door_number.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.street.id_for_label }}">Street</label>
+          {{ form.street }}
+          {{ form.street.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.landmark.id_for_label }}">Landmark</label>
+          {{ form.landmark }}
+          {{ form.landmark.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.address.id_for_label }}">Address</label>
+          {{ form.address }}
+          {{ form.address.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.city.id_for_label }}">City</label>
+          {{ form.city }}
+          {{ form.city.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.state.id_for_label }}">State</label>
+          {{ form.state }}
+          {{ form.state.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.pincode.id_for_label }}">Pincode</label>
+          {{ form.pincode }}
+          {{ form.pincode.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.country.id_for_label }}">Country</label>
+          {{ form.country }}
+          {{ form.country.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.latitude.id_for_label }}">Latitude</label>
+          {{ form.latitude }}
+          {{ form.latitude.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.longitude.id_for_label }}">Longitude</label>
+          {{ form.longitude }}
+          {{ form.longitude.errors }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section" id="rent-section">
+      {% ui_heading text="Rent details" level=2 %}
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="{{ form.monthly_rent.id_for_label }}">Monthly rent</label>
+          {{ form.monthly_rent }}
+          {{ form.monthly_rent.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.advance_amount.id_for_label }}">Advance / deposit</label>
+          {{ form.advance_amount }}
+          {{ form.advance_amount.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.late_fee_amount.id_for_label }}">Late fee</label>
+          {{ form.late_fee_amount }}
+          {{ form.late_fee_amount.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.late_fee_grace_days.id_for_label }}">Late fee grace days</label>
+          {{ form.late_fee_grace_days }}
+          {{ form.late_fee_grace_days.errors }}
+        </div>
+        <div class="form-field checkbox-field">
+          <label class="checkbox-row">
+            {{ form.is_occupied }} Currently occupied
+          </label>
+          {{ form.is_occupied.errors }}
+        </div>
+        <div class="form-field checkbox-field">
+          <label class="checkbox-row">
+            {{ form.allow_tenant_marketing }} Allow tenant marketing
+          </label>
+          {{ form.allow_tenant_marketing.errors }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section" id="sale-section">
+      {% ui_heading text="Sale details" level=2 %}
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="{{ form.sale_price.id_for_label }}">Sale price</label>
+          {{ form.sale_price }}
+          {{ form.sale_price.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.sale_status.id_for_label }}">Sale status</label>
+          {{ form.sale_status }}
+          {{ form.sale_status.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.furnishing.id_for_label }}">Furnishing</label>
+          {{ form.furnishing }}
+          {{ form.furnishing.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.possession_date.id_for_label }}">Possession date</label>
+          {{ form.possession_date }}
+          {{ form.possession_date.errors }}
+        </div>
+        <div class="form-field checkbox-field">
+          <label class="checkbox-row">
+            {{ form.price_negotiable }} Price negotiable
+          </label>
+          {{ form.price_negotiable.errors }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      {% ui_heading text="Details & visibility" level=2 %}
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="{{ form.bedrooms.id_for_label }}">Bedrooms</label>
+          {{ form.bedrooms }}
+          {{ form.bedrooms.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.bathrooms.id_for_label }}">Bathrooms</label>
+          {{ form.bathrooms }}
+          {{ form.bathrooms.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.area_sqft.id_for_label }}">Area (sq.ft)</label>
+          {{ form.area_sqft }}
+          {{ form.area_sqft.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.year_of_building.id_for_label }}">Year of building</label>
+          {{ form.year_of_building }}
+          {{ form.year_of_building.errors }}
+        </div>
+        <div class="form-field checkbox-field">
+          <label class="checkbox-row">
+            {{ form.is_listed_publicly }} Show on public listings
+          </label>
+          {{ form.is_listed_publicly.errors }}
+        </div>
+        <div class="form-field full">
+          <label for="{{ form.amenities.id_for_label }}">Amenities</label>
+          {{ form.amenities }}
+          {{ form.amenities.errors }}
+        </div>
+      </div>
+    </div>
+
+    <div class="actions form-actions">
+      {% if mode == 'add' %}
+      {% ui_button label="Save property" variant="primary" type="submit" %}
+      {% else %}
+      {% ui_button label="Update" variant="primary" type="submit" %}
+      {% endif %}
+      {% if property %}{% url 'property_manage' property.pk as cancel_url %}{% else %}{% url 'my_properties' as cancel_url %}{% endif %}
+      {% ui_button label="Cancel" href=cancel_url variant="secondary" %}
+    </div>
+  </form>
+</section>
+<script>
+(function () {
+  const typeField = document.getElementById('{{ form.listing_type.id_for_label }}');
+  const rentSection = document.getElementById('rent-section');
+  const saleSection = document.getElementById('sale-section');
+  function toggle() {
+    const isSale = typeField && typeField.value === 'sale';
+    if (rentSection) rentSection.style.display = isSale ? 'none' : '';
+    if (saleSection) saleSection.style.display = isSale ? '' : 'none';
+  }
+  if (typeField) {
+    typeField.addEventListener('change', toggle);
+    toggle();
+  }
+})();
+</script>
+{% endblock %}

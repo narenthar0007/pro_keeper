@@ -1,0 +1,7 @@
+{% if alerts %}
+<ul class="messages ui-alerts">
+  {% for alert in alerts %}
+    {% include "includes/ui_alert.html" with alert=alert %}
+  {% endfor %}
+</ul>
+{% endif %}

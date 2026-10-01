@@ -1,0 +1,29 @@
+{% load ui %}
+<div class="{{ form.class_name }} ui-form" {% if form.id %}id="{{ form.id }}"{% endif %}>
+  {% if form.kicker %}<p class="hero-kicker">{{ form.kicker }}</p>{% endif %}
+  {% if form.title %}{% ui_heading text=form.title level=1 hint=form.subtitle %}{% elif form.subtitle %}<p class="meta">{{ form.subtitle }}</p>{% endif %}
+
+  {% if form.errors %}
+  <ul class="messages ui-alerts">
+    {% for err in form.errors %}
+      <li class="ui-alert ui-alert--error">{{ err }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <form method="{{ form.method }}" {% if form.action %}action="{{ form.action }}"{% endif %} {% if form.enctype %}enctype="{{ form.enctype }}"{% endif %} novalidate style="margin-top:1.2rem">
+    {% if form.include_csrf %}{% csrf_token %}{% endif %}
+    {% for field in form.fields %}
+      {% ui_field field %}
+    {% endfor %}
+    <div class="actions form-actions">
+      {% for btn in form.actions %}
+        {% ui_button btn %}
+      {% endfor %}
+    </div>
+  </form>
+
+  {% if form.footer_html %}
+    <div class="ui-form-footer">{{ form.footer_html|safe }}</div>
+  {% endif %}
+</div>

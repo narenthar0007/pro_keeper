@@ -1,0 +1,10 @@
+{% if listings %}
+<div class="grid ui-listings">
+  {% for listing in listings %}
+    {% include "includes/ui_listing.html" with listing=listing %}
+  {% empty %}
+  {% endfor %}
+</div>
+{% elif empty %}
+  {% include "includes/ui_empty.html" with empty=empty %}
+{% endif %}

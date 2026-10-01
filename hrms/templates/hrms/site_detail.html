@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{{ site.name }} — HRMS{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+<section class="panel">
+  <p><strong>Type:</strong> {{ site.get_site_type_display }}</p>
+  <p><strong>Address:</strong> {{ site.address|default:"—" }}</p>
+  <p><strong>Status:</strong> {{ site.status }}</p>
+  <h3>Managers</h3>
+  <ul>
+    {% for a in assignments %}
+      <li>{{ a.manager.username }}</li>
+    {% empty %}
+      <li>No managers assigned.</li>
+    {% endfor %}
+  </ul>
+  {% if assign_form %}
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="assign">
+    {% ui_form form=assign_form submit_label="Assign manager" %}
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

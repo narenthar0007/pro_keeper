@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Settings — {{ brand_name }}{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+
+<section class="panel">
+  <p class="meta" style="margin-top:0">
+    {% if settings_role == 'tenant' %}
+      Get a reminder when it is time to <strong>pay rent</strong>.
+    {% else %}
+      Get a reminder when it is time to <strong>collect rent</strong> from tenants.
+    {% endif %}
+    Uploads are stored under your brand folder, e.g. <code>propkeep/user-{{ user.id }}/avatar/</code>.
+    The banner stays visible from the reminder day until rent for this month is marked paid.
+  </p>
+  {% if can_manage_reminders %}
+  <p class="meta">Profile photo appears in the header when uploaded below.</p>
+  {% if not has_email %}
+  <p class="meta" style="color:#92400e">Add an email on your account if you want the reminder emailed as well as shown in the app.</p>
+  {% endif %}
+  {% endif %}
+  {% if not can_manage_reminders %}
+  <p class="meta" style="color:#92400e">Your role can view this page, but rent reminder changes are turned off in Privileges.</p>
+  {% endif %}
+</section>
+
+{% if can_manage_reminders %}
+{% ui_form form=form title="" submit_label="Save reminders" cancel_href=cancel_href cancel_label="Back" %}
+{% else %}
+<section class="panel">
+  <p class="meta">Reminder settings are read-only for your role.</p>
+  <p class="meta">Remind me: <strong>{% if form.instance.rent_reminder_enabled %}On{% else %}Off{% endif %}</strong></p>
+  <p class="meta">Due day: <strong>{{ form.instance.rent_due_day }}</strong></p>
+  <div class="actions"><a class="btn btn-secondary" href="{{ cancel_href }}">Back</a></div>
+</section>
+{% endif %}
+
+<section class="panel" style="margin-top:1.25rem">
+  {% ui_heading text="This month" level=2 tooltip="Based on the due day and days-before values currently saved." %}
+  <p class="meta">Rent due date: <strong>{{ next_due_date|date:"j M Y" }}</strong></p>
+  <p class="meta">Reminder starts: <strong>{{ next_reminder_date|date:"j M Y" }}</strong></p>
+</section>
+{% endblock %}

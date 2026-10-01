@@ -1,0 +1,20 @@
+{% extends "accounts/admin/base_admin.html" %}
+{% load ui %}
+
+{% block title %}{{ table_label }} — Admin{% endblock %}
+
+{% block content %}
+{% ui_page_header title=table_label subtitle="Showing rows per page. Use pagination or Load more." %}
+
+{% if group_form %}
+<section class="panel">
+  <h2>Add group</h2>
+  {% ui_form form=group_form submit_label="Create group" class_name="" %}
+</section>
+{% endif %}
+
+<section class="panel">
+  {% ui_table data_table %}
+  {% ui_pagination paging=paging page=page filter_query=filter_query %}
+</section>
+{% endblock %}

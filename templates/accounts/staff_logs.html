@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Activity logs — Admin{% endblock %}
+
+{% block content %}
+<div class="section-head">
+  <div>
+    <p class="hero-kicker"><a href="{% url 'staff_dashboard' %}">Admin</a> / logs</p>
+    <h1>Activity logs</h1>
+    <p class="meta">Every page visit and change is recorded here.</p>
+  </div>
+</div>
+
+<form class="filters" method="get">
+  <div style="grid-column: span 2">
+    <label for="q">Search</label>
+    <input id="q" type="text" name="q" value="{{ q }}" placeholder="User, path, IP, message">
+  </div>
+  <div>
+    <label for="action">Action</label>
+    <select id="action" name="action">
+      <option value="">All</option>
+      {% for value, label in action_choices %}
+        <option value="{{ value }}" {% if selected_action == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <button class="btn btn-primary" type="submit">Filter</button>
+  </div>
+</form>
+
+<section class="panel">
+  <table>
+    <thead>
+      <tr>
+        <th>When</th>
+        <th>User</th>
+        <th>Action</th>
+        <th>Request</th>
+        <th>Status</th>
+        <th>IP</th>
+        <th>Message</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in page %}
+      <tr>
+        <td>{{ log.created_at|date:"d M Y H:i:s" }}</td>
+        <td>
+          {% if log.user_id %}
+            <a href="{% url 'staff_user_detail' log.user_id %}">{{ log.username }}</a>
+          {% else %}
+            {{ log.username }}
+          {% endif %}
+        </td>
+        <td><span class="badge">{{ log.get_action_display }}</span></td>
+        <td class="meta">{{ log.method }} {{ log.path }}</td>
+        <td>{{ log.status_code|default:"—" }}</td>
+        <td>{{ log.ip_address|default:"—" }}</td>
+        <td>{{ log.message }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="empty">No logs found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if page.has_other_pages %}
+  <div class="actions">
+    {% if page.has_previous %}
+      <a class="btn btn-secondary btn-sm" href="?page={{ page.previous_page_number }}&q={{ q }}&action={{ selected_action }}">Previous</a>
+    {% endif %}
+    <span class="meta">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}
+      <a class="btn btn-secondary btn-sm" href="?page={{ page.next_page_number }}&q={{ q }}&action={{ selected_action }}">Next</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

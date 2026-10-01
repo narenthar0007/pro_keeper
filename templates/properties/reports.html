@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Reports — PropKeep{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+{% ui_filter report_filter %}
+{% ui_kpis kpis %}
+
+<section class="panel">
+  {% ui_heading text="By property" level=2 tooltip="Income and expenses for the selected month." %}
+  {% ui_table property_table %}
+</section>
+
+{% if overdue %}
+<section class="panel">
+  {% ui_heading text="Overdue tenants (this month)" level=2 %}
+  {% ui_table overdue_table %}
+</section>
+{% endif %}
+{% endblock %}

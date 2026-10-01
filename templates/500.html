@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Something went wrong — PropKeep</title>
+  <style>
+    :root {
+      --accent: #1d4ed8;
+      --paper: #f8fafc;
+      --surface: #ffffff;
+      --ink: #111827;
+      --line: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    main { width: min(40rem, calc(100% - 2rem)); margin: 3rem auto; }
+    .status-code {
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--accent);
+      margin: 0 0 0.4rem;
+      line-height: 1;
+    }
+    h1 { margin: 0 0 0.35rem; font-size: 1.75rem; }
+    p { color: #4b5563; line-height: 1.5; }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.25rem; }
+    a {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      border-radius: 8px;
+      padding: 0.55rem 0.9rem;
+      font-weight: 600;
+    }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: #f3f4f6; color: var(--ink); }
+  </style>
+</head>
+<body>
+  <main>
+    <article class="panel">
+      <p class="status-code">500</p>
+      <h1>Something went wrong</h1>
+      <p>The server hit an unexpected error. Try again in a moment.</p>
+      <div class="actions">
+        <a class="primary" href="/">Go home</a>
+        <a class="secondary" href="/">Browse listings</a>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Dashboard — PropKeep{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+{% ui_kpis dashboard_kpis %}
+{% ui_popup dashboard_help_popup %}
+
+{% if due_properties %}
+<section class="panel">
+  <h2>Rent due this month</h2>
+  {% ui_table due_table %}
+</section>
+{% endif %}
+
+<div class="detail-grid">
+  <section class="panel">
+    {% ui_page_header title="Your properties" level=2 actions=properties_panel_actions %}
+    {% if properties %}
+      {% ui_table properties_table %}
+    {% else %}
+      {% ui_empty properties_empty %}
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="section-head">
+      <div>
+        <h2>Recent payments</h2>
+        <p class="meta">Income ₹{{ month_income|floatformat:0 }} · Expenses ₹{{ month_expenses|floatformat:0 }}</p>
+      </div>
+    </div>
+    {% if recent_payments %}
+      {% ui_table payments_table %}
+    {% else %}
+      {% ui_empty payments_empty %}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

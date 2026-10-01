@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Marketing{% endblock %}
+
+{% block content %}
+{% if login_required_msg %}
+<section class="panel">
+  <h1>Marketing</h1>
+  <p class="meta">Login to manage campaigns and view brand promotions.</p>
+  <a class="btn btn-primary" href="{% url 'login' %}">Login</a>
+</section>
+{% if promotions %}
+<section class="panel">
+  <h2>Current promotions</h2>
+  <div class="grid">
+    {% for promo in promotions %}
+    <article class="listing">
+      {% if promo.image %}<img class="listing-thumb" src="{{ promo.image.url }}" alt="">{% endif %}
+      <h3>{{ promo.title }}</h3>
+      <p>{{ promo.description }}</p>
+      {% if promo.cta_url %}<a class="btn btn-secondary btn-sm" href="{{ promo.cta_url }}">{{ promo.cta_label|default:"Learn more" }}</a>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% else %}
+{% ui_page_header page_header %}
+{% ui_kpis marketing_kpis %}
+
+{% if show_collaboration_invites %}
+<section class="panel">
+  <h2>Collaboration requests</h2>
+  <p class="meta">Campaign owners sent these invites for you to join and help with marketing.</p>
+  {% ui_table collaboration_invites_table %}
+</section>
+{% endif %}
+
+{% if promotions %}
+<section class="panel">
+  <h2>Brand promotions</h2>
+  <div class="grid">
+    {% for promo in promotions %}
+    <article class="listing">
+      {% if promo.image %}<img class="listing-thumb" src="{{ promo.image.url }}" alt="">{% endif %}
+      <h3>{{ promo.title }}</h3>
+      <p>{{ promo.description }}</p>
+      {% if promo.cta_url %}<a class="btn btn-secondary btn-sm" href="{{ promo.cta_url }}">{{ promo.cta_label|default:"Learn more" }}</a>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="panel">
+  {% ui_filter marketing_filter %}
+  {% if campaigns_table.rows %}
+    {% ui_table campaigns_table %}
+  {% else %}
+    {% ui_empty campaigns_empty %}
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

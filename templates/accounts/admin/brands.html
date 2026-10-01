@@ -1,0 +1,81 @@
+{% extends "accounts/admin/base_admin.html" %}
+{% load ui %}
+
+{% block title %}Brands — Admin{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+
+{% if preview_slug %}
+<p class="meta">Preview session active: <strong>{{ preview_slug }}</strong>
+  <form method="post" style="display:inline">{% csrf_token %}
+    <input type="hidden" name="action" value="clear_preview">
+    <button class="btn btn-secondary btn-sm" type="submit">Clear preview</button>
+  </form>
+</p>
+{% endif %}
+
+<section class="panel">
+  <table class="ui-table is-striped is-hover">
+    <thead>
+      <tr>
+        <th>Brand <button type="button" class="ui-tip" title="Display name shown in header" data-tooltip="Display name shown in header">i</button></th>
+        <th>Slug</th>
+        <th>Hosts <button type="button" class="ui-tip" title="Hostname that activates this brand" data-tooltip="Hostname that activates this brand">i</button></th>
+        <th>Base URL</th>
+        <th>Default</th>
+        <th>Active</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for brand in brands %}
+      <tr>
+        <td>
+          <strong>{{ brand.name }}</strong><br>
+          <span class="meta">{{ brand.tagline }}</span>
+          <div style="margin-top:0.35rem;display:flex;gap:0.35rem">
+            <span style="width:14px;height:14px;border-radius:4px;background:{{ brand.header_color }};border:1px solid #ddd"></span>
+            <span style="width:14px;height:14px;border-radius:4px;background:{{ brand.primary_color }};border:1px solid #ddd"></span>
+            <span style="width:14px;height:14px;border-radius:4px;background:{{ brand.footer_bg_color }};border:1px solid #ddd"></span>
+          </div>
+        </td>
+        <td>{{ brand.slug }}{% if preview_slug == brand.slug %} · <span class="badge">Preview</span>{% endif %}</td>
+        <td class="meta">{{ brand.hostnames }}</td>
+        <td class="meta">{{ brand.base_url }}</td>
+        <td>{% if brand.is_default %}{% ui_badge label="Default" tone="paid" %}{% else %}—{% endif %}</td>
+        <td>{% if brand.is_active %}{% ui_badge label="Active" tone="vacant" %}{% else %}{% ui_badge label="Off" tone="occupied" %}{% endif %}</td>
+        <td>
+          <div class="actions" style="margin:0">
+            <a class="btn btn-primary btn-sm" href="{% url 'staff_brand_edit' brand.pk %}">Edit theme</a>
+            <form method="post">{% csrf_token %}
+              <input type="hidden" name="brand_id" value="{{ brand.pk }}">
+              <input type="hidden" name="action" value="preview">
+              <button class="btn btn-secondary btn-sm" type="submit">Preview</button>
+            </form>
+            {% if not brand.is_default %}
+            <form method="post">{% csrf_token %}
+              <input type="hidden" name="brand_id" value="{{ brand.pk }}">
+              <input type="hidden" name="action" value="make_default">
+              <button class="btn btn-secondary btn-sm" type="submit">Set default</button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7">{% ui_empty text="No brands yet." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  {% ui_heading text="How brand switching works" level=2 tooltip="Same admin panel; site appearance follows the active brand." %}
+  <ol class="meta" style="line-height:1.7;padding-left:1.2rem">
+    <li><strong>Hostname</strong> — open <code>http://checkpro.localhost:8000</code> for CheckPro Data (add host to your hosts file if needed).</li>
+    <li><strong>Preview</strong> — click Preview here to force a brand in your session (works on localhost).</li>
+    <li><strong>Default</strong> — used when host does not match any brand.</li>
+  </ol>
+</section>
+{% endblock %}

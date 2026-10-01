@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}My properties — PropKeep{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+{% ui_listings listing_cards empty=listings_empty %}
+{% endblock %}

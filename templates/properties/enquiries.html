@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Enquiries — PropKeep{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+{% ui_kpis enquiry_kpis %}
+{% ui_popup enquiry_help_popup %}
+
+<section class="panel">
+  {% ui_table enquiries_table %}
+</section>
+{% endblock %}

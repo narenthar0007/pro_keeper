@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Lead {{ enquiry.name }} — PropKeep{% endblock %}
+
+{% block content %}
+<div class="section-head">
+  <div>
+    <p class="meta"><a href="{% url 'enquiries_inbox' %}">Leads</a> / {{ enquiry.get_status_display }}</p>
+    <h1>{{ enquiry.name }}</h1>
+    <p class="meta">
+      {{ enquiry.email }}{% if enquiry.phone %} · {{ enquiry.phone }}{% endif %}
+      · {{ enquiry.get_enquiry_type_display }} · {{ enquiry.get_source_display }}
+    </p>
+    <p class="meta">
+      Listing: <a href="{% url 'property_manage' enquiry.property_id %}">{{ enquiry.property.title }}</a>
+      {% if enquiry.property.building %}· {{ enquiry.property.unit_label }}{% endif %}
+    </p>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <section class="panel">
+    <h2>Message</h2>
+    <p style="white-space:pre-wrap">{{ enquiry.message }}</p>
+    <p class="meta">Budget
+      {% if enquiry.budget_min or enquiry.budget_max %}
+        ₹{{ enquiry.budget_min|default:"—" }} – ₹{{ enquiry.budget_max|default:"—" }}
+      {% else %}—{% endif %}
+      {% if enquiry.preferred_move_in %} · Move-in {{ enquiry.preferred_move_in }}{% endif %}
+    </p>
+  </section>
+
+  <section class="panel">
+    <h2>Pipeline</h2>
+    <form method="post" action="{% url 'lead_update' enquiry.pk %}">
+      {% csrf_token %}
+      {{ status_form.as_p }}
+      <button class="btn btn-primary btn-sm" type="submit">Save lead</button>
+    </form>
+    {% if enquiry.property.is_for_rent and not enquiry.converted_tenant_id %}
+    <form method="post" action="{% url 'lead_convert_tenant' enquiry.pk %}" style="margin-top:1rem">
+      {% csrf_token %}
+      <button class="btn btn-primary" type="submit">Convert to tenant</button>
+    </form>
+    {% endif %}
+    {% if enquiry.converted_tenant_id %}
+    <p class="meta">Converted tenant: {{ enquiry.converted_tenant.name }}</p>
+    {% endif %}
+    {% if enquiry.converted_deal_id %}
+    <p class="meta">Sale deal #{{ enquiry.converted_deal_id }} · {{ enquiry.converted_deal.get_status_display }}</p>
+    {% endif %}
+  </section>
+</div>
+
+<section class="panel">
+  <h2>Visits</h2>
+  <form method="post" action="{% url 'lead_visit_add' enquiry.pk %}" class="filters">
+    {% csrf_token %}
+    {{ visit_form.as_p }}
+    <button class="btn btn-primary btn-sm" type="submit">Save visit</button>
+  </form>
+  <table>
+    <thead><tr><th>When</th><th>Unit</th><th>Status</th><th>Notes</th></tr></thead>
+    <tbody>
+      {% for visit in visits %}
+      <tr>
+        <td>{{ visit.scheduled_at }}</td>
+        <td>{{ visit.property.title }}</td>
+        <td>{{ visit.get_status_display }}</td>
+        <td>{{ visit.notes|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="empty">No visits yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>Offers</h2>
+  <form method="post" action="{% url 'lead_offer_add' enquiry.pk %}" class="filters">
+    {% csrf_token %}
+    {{ offer_form.as_p }}
+    <button class="btn btn-primary btn-sm" type="submit">Log offer</button>
+  </form>
+  <table>
+    <thead><tr><th>Type</th><th>Amount</th><th>Status</th><th>Valid</th></tr></thead>
+    <tbody>
+      {% for offer in offers %}
+      <tr>
+        <td>{{ offer.get_offer_type_display }}</td>
+        <td>₹{{ offer.amount|floatformat:0 }}</td>
+        <td>{{ offer.get_status_display }}</td>
+        <td>{{ offer.valid_until|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="empty">No offers yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% if enquiry.property.is_for_sale and not enquiry.converted_deal_id %}
+<section class="panel">
+  <h2>Convert to sale deal</h2>
+  <form method="post" action="{% url 'lead_convert_deal' enquiry.pk %}">
+    {% csrf_token %}
+    {{ deal_form.as_p }}
+    <button class="btn btn-primary" type="submit">Create deal</button>
+  </form>
+</section>
+{% endif %}
+
+{% if deals %}
+<section class="panel">
+  <h2>Sale deals</h2>
+  <table>
+    <thead><tr><th>Buyer</th><th>Price</th><th>Status</th><th>Token</th></tr></thead>
+    <tbody>
+      {% for deal in deals %}
+      <tr>
+        <td>{{ deal.buyer_name }}</td>
+        <td>₹{{ deal.agreed_price|floatformat:0 }}</td>
+        <td>{{ deal.get_status_display }}</td>
+        <td>{% if deal.token_amount %}₹{{ deal.token_amount|floatformat:0 }}{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<section class="panel">
+  <h2>Timeline</h2>
+  <ul>
+    {% for act in activities %}
+    <li>
+      <span class="meta">{{ act.created_at|date:"d M Y H:i" }}</span>
+      · {{ act.get_verb_display }}
+      {% if act.actor %}· {{ act.actor.username }}{% endif %}
+      {% if act.message %}— {{ act.message }}{% endif %}
+    </li>
+    {% empty %}
+    <li class="empty">No activity yet.</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

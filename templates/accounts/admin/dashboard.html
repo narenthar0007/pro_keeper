@@ -1,0 +1,47 @@
+{% extends "accounts/admin/base_admin.html" %}
+{% load ui %}
+
+{% block title %}Admin dashboard — PropKeep{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+{% ui_kpis kpis %}
+
+<div class="detail-grid">
+  <section class="panel">
+    {% ui_heading text="Recent activity" level=2 %}
+    <table>
+      <thead><tr><th>When</th><th>User</th><th>Action</th><th>Path</th></tr></thead>
+      <tbody>
+        {% for log in recent_logs %}
+        <tr>
+          <td>{{ log.created_at|date:"d M H:i" }}</td>
+          <td>{{ log.username }}</td>
+          <td>{% ui_badge label=log.get_action_display %}</td>
+          <td class="meta">{{ log.method }} {{ log.path }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4">{% ui_empty text="No logs yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  <section class="panel">
+    {% ui_heading text="Newest users" level=2 %}
+    <table>
+      <thead><tr><th>User</th><th>Role</th><th>Joined</th></tr></thead>
+      <tbody>
+        {% for u in recent_users %}
+        <tr>
+          <td><a href="{% url 'staff_user_detail' u.pk %}">{{ u.username }}</a></td>
+          <td>{% if u.profile %}{{ u.profile.get_role_display }}{% else %}—{% endif %}</td>
+          <td>{{ u.date_joined|date:"d M Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3">{% ui_empty text="No users yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

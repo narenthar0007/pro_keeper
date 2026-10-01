@@ -1,0 +1,15 @@
+<div class="ui-heading-wrap {{ heading.class_name }}" {% if heading.id %}id="{{ heading.id }}"{% endif %}>
+  <{{ heading.tag }} class="ui-heading ui-heading--h{{ heading.level }}">
+    <span class="ui-heading-text">{{ heading.text }}</span>
+    {% if heading.tooltip %}
+    <button
+      type="button"
+      class="ui-tip"
+      aria-label="More info"
+      data-tooltip="{{ heading.tooltip }}"
+      title="{{ heading.tooltip }}"
+    >i</button>
+    {% endif %}
+  </{{ heading.tag }}>
+  {% if heading.hint %}<p class="meta ui-heading-hint">{{ heading.hint }}</p>{% endif %}
+</div>

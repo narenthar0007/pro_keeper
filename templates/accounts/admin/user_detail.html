@@ -1,0 +1,43 @@
+{% extends "accounts/admin/base_admin.html" %}
+{% load ui %}
+
+{% block title %}{{ target.username }} — Admin{% endblock %}
+
+{% block content %}
+<p class="meta"><a href="{% url 'staff_users' %}">Users</a></p>
+{% ui_page_header page_header %}
+{% ui_kpis kpis %}
+
+<section class="panel">
+  {% ui_heading text="Set role & access" level=2 %}
+  <div class="actions">
+    <form method="post" action="{% url 'staff_user_toggle' target.pk %}">{% csrf_token %}<input type="hidden" name="action" value="role_owner">{% ui_button label="Make Owner" variant="secondary" size="sm" type="submit" %}</form>
+    <form method="post" action="{% url 'staff_user_toggle' target.pk %}">{% csrf_token %}<input type="hidden" name="action" value="role_tenant">{% ui_button label="Make Tenant" variant="secondary" size="sm" type="submit" %}</form>
+    <form method="post" action="{% url 'staff_user_toggle' target.pk %}">{% csrf_token %}<input type="hidden" name="action" value="role_admin">{% ui_button label="Make Admin" variant="primary" size="sm" type="submit" %}</form>
+    {% if target.is_active %}
+      <form method="post" action="{% url 'staff_user_toggle' target.pk %}">{% csrf_token %}<input type="hidden" name="action" value="deactivate">{% ui_button label="Deactivate" variant="danger" size="sm" type="submit" %}</form>
+    {% else %}
+      <form method="post" action="{% url 'staff_user_toggle' target.pk %}">{% csrf_token %}<input type="hidden" name="action" value="activate">{% ui_button label="Activate" variant="primary" size="sm" type="submit" %}</form>
+    {% endif %}
+  </div>
+</section>
+
+<section class="panel">
+  {% ui_heading text="Recent activity" level=2 %}
+  <table>
+    <thead><tr><th>When</th><th>Action</th><th>Request</th><th>IP</th></tr></thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td>{{ log.created_at|date:"d M Y H:i:s" }}</td>
+        <td>{{ log.get_action_display }}</td>
+        <td class="meta">{{ log.method }} {{ log.path }}</td>
+        <td>{{ log.ip_address|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">{% ui_empty text="No activity." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

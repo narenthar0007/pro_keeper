@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{% if mode == 'add' %}New campaign{% else %}Edit campaign{% endif %}{% endblock %}
+
+{% block content %}
+{% url 'marketing' as cancel_url %}
+{% if mode == 'add' %}
+{% ui_form form=form title="New marketing campaign" submit_label="Save campaign" cancel_href=cancel_url %}
+{% else %}
+{% ui_form form=form title="Edit campaign" submit_label="Update" cancel_href=cancel_url %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}HRMS subscriptions{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+<section class="panel">
+  <p class="meta">Only admins can turn HRMS on/off. Owners then see HRMS in the nav after login.</p>
+  <table class="ui-table">
+    <thead>
+      <tr>
+        <th>Owner</th>
+        <th>Status</th>
+        <th>Industry</th>
+        <th>WhatsApp</th>
+        <th>Paid</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in owner_rows %}
+      <tr>
+        <td>{{ row.owner.username }}</td>
+        <td>{% if row.enabled %}<strong>ON</strong>{% else %}OFF{% endif %}</td>
+        <td>{{ row.industry }}</td>
+        <td>{{ row.whatsapp }}</td>
+        <td>{% if row.is_paid %}Yes{% else %}No{% endif %}</td>
+        <td>
+          {% if row.enabled %}
+          <form method="post" style="display:inline">{% csrf_token %}
+            <input type="hidden" name="owner_id" value="{{ row.owner.id }}">
+            <button type="submit" name="action" value="disable">Disable</button>
+          </form>
+          {% else %}
+          <form method="post" style="display:inline">{% csrf_token %}
+            <input type="hidden" name="owner_id" value="{{ row.owner.id }}">
+            <button type="submit" name="action" value="enable">Enable HRMS</button>
+          </form>
+          {% endif %}
+          <a href="{% url 'hrms_admin_owner_settings' row.owner.id %}">Edit details</a>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6">No owner accounts found. Create an owner first (Admin → Users).</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

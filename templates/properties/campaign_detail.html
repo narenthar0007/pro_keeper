@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{{ campaign.title }}{% endblock %}
+
+{% block content %}
+{% url 'marketing' as marketing_url %}
+<p class="meta"><a href="{{ marketing_url }}">Marketing</a></p>
+<div class="section-head">
+  <div>
+    {% ui_heading text=campaign.title level=1 hint=campaign.property.title %}
+    <p class="meta">{{ campaign.get_channel_display }} · {{ campaign.get_status_display }}</p>
+  </div>
+  <div class="actions" style="margin:0">
+    {% if can_edit %}{% url 'campaign_edit' campaign.pk as edit_url %}{% ui_button label="Edit" href=edit_url variant="secondary" size="sm" %}{% endif %}
+    {% if can_delete %}
+    <form method="post" action="{% url 'campaign_delete' campaign.pk %}">{% csrf_token %}
+      {% ui_button label="Delete" variant="danger" size="sm" type="submit" %}
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{% ui_kpis kpis %}
+
+{% if campaign.notes %}
+<section class="panel">{% ui_heading text="Notes" level=2 %}<p style="white-space:pre-wrap;margin:0">{{ campaign.notes }}</p></section>
+{% endif %}
+
+{% if campaign.content_reminder_note %}
+<section class="panel">
+  {% ui_heading text="Collaborator reminder note" level=2 %}
+  <p style="white-space:pre-wrap;margin:0">{{ campaign.content_reminder_note }}</p>
+</section>
+{% endif %}
+
+{% if my_task_messages %}
+<section class="panel">
+  {% ui_heading text="Task messages" level=2 hint="Reminders from the background job when daily posts/videos are missing." %}
+  <table>
+    <thead><tr><th>When</th><th>For date</th><th>Message</th><th></th></tr></thead>
+    <tbody>
+      {% for msg in my_task_messages %}
+      <tr>
+        <td>{{ msg.created_at|date:"d M Y H:i" }}</td>
+        <td>{{ msg.work_date|date:"d M Y" }}</td>
+        <td style="white-space:pre-wrap">{{ msg.message }}</td>
+        <td>
+          {% if not msg.is_read %}
+          <form method="post" action="{% url 'campaign_task_message_read' msg.pk %}">{% csrf_token %}
+            <button class="btn btn-secondary btn-sm" type="submit">Mark read</button>
+          </form>
+          {% else %}<span class="badge">Read</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<section class="panel">
+  {% ui_heading text="Content plan" level=2 %}
+  <p class="meta">
+    Schedule: {{ schedule_days }} day(s)
+    · Target {{ photos_required }} photo(s) + {{ videos_required }} video(s) total
+    · Done {{ content_totals.photos }} photo(s) + {{ content_totals.videos }} video(s)
+    · Today {{ today|date:"d M Y" }}: {{ today_done.photos }}/{{ campaign.photos_per_day }} photos,
+      {{ today_done.videos }}/{{ campaign.videos_per_day }} videos
+  </p>
+
+  {% if can_log_content %}
+  <form method="post" action="{% url 'campaign_log_content' campaign.pk %}" style="margin-top:1rem">
+    {% csrf_token %}
+    {{ content_form.as_p }}
+    <button class="btn btn-primary btn-sm" type="submit">Save today's posts</button>
+  </form>
+  {% endif %}
+
+  {% if recent_logs %}
+  <table style="margin-top:1rem">
+    <thead><tr><th>Date</th><th>User</th><th>Photos</th><th>Videos</th><th>Note</th></tr></thead>
+    <tbody>
+      {% for log in recent_logs %}
+      <tr>
+        <td>{{ log.work_date|date:"d M Y" }}</td>
+        <td>{{ log.user.username }}</td>
+        <td>{{ log.photos_count }}</td>
+        <td>{{ log.videos_count }}</td>
+        <td>{{ log.note|default:"—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</section>
+
+{% for c in collaborators %}
+{% if c.user == request.user and not c.accepted and c.invite_message %}
+<section class="panel">
+  {% ui_heading text="Collaboration request" level=2 %}
+  <p class="meta">From {% if c.invited_by %}{{ c.invited_by.username }}{% else %}campaign owner{% endif %}</p>
+  <p style="white-space:pre-wrap;margin:0">{{ c.invite_message }}</p>
+</section>
+{% endif %}
+{% endfor %}
+
+<section class="panel">
+  {% ui_heading text="Collaborators" level=2 %}
+  <table>
+    <thead><tr><th>User</th><th>Role</th><th>Edit</th><th>Publish</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for c in collaborators %}
+      <tr>
+        <td>{{ c.user.username }}</td>
+        <td>{{ c.get_role_display }}</td>
+        <td>{% if c.can_edit %}Yes{% else %}No{% endif %}</td>
+        <td>{% if c.can_publish %}Yes{% else %}No{% endif %}</td>
+        <td>
+          {% if c.accepted %}Accepted{% elif c.user == request.user %}
+          <form method="post" action="{% url 'campaign_accept_invite' c.pk %}">{% csrf_token %}
+            <button class="btn btn-primary btn-sm" type="submit">Accept invite</button>
+          </form>
+          {% else %}Pending{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="meta">No collaborators.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if can_invite %}
+  <form method="post" action="{% url 'campaign_invite' campaign.pk %}" style="margin-top:1rem">
+    {% csrf_token %}
+    {{ invite_form.as_p }}
+    <button class="btn btn-primary btn-sm" type="submit">Invite collaborator</button>
+  </form>
+  <p class="meta" style="margin-top:.5rem">If invite fails with a security error, refresh this page after login and try again.</p>
+  {% endif %}
+</section>
+{% endblock %}

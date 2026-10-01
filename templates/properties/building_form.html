@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{% if mode == 'add' %}Add building{% else %}Edit building{% endif %} — PropKeep{% endblock %}
+
+{% block content %}
+{% if building %}{% url 'building_detail' building.pk as cancel_url %}{% else %}{% url 'building_list' as cancel_url %}{% endif %}
+{% if mode == 'add' %}
+{% ui_form form=form title="Add building" subtitle="Units attach to this address. Standalone listings can stay without a building." submit_label="Save" cancel_href=cancel_url %}
+{% else %}
+{% ui_form form=form title="Edit building" subtitle="Units attach to this address. Standalone listings can stay without a building." submit_label="Save" cancel_href=cancel_url %}
+{% endif %}
+{% endblock %}

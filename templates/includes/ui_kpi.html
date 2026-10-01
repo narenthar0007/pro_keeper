@@ -1,0 +1,13 @@
+{% if kpi.href %}
+<a class="stat ui-kpi{% if kpi.tone %} ui-kpi--{{ kpi.tone }}{% endif %}" href="{{ kpi.href }}" {% if kpi.id %}id="{{ kpi.id }}"{% endif %}>
+  <p class="label">{{ kpi.label }}</p>
+  <p class="value">{{ kpi.value }}</p>
+  {% if kpi.hint %}<p class="meta ui-kpi-hint">{{ kpi.hint }}</p>{% endif %}
+</a>
+{% else %}
+<div class="stat ui-kpi{% if kpi.tone %} ui-kpi--{{ kpi.tone }}{% endif %}" {% if kpi.id %}id="{{ kpi.id }}"{% endif %}>
+  <p class="label">{{ kpi.label }}</p>
+  <p class="value">{{ kpi.value }}</p>
+  {% if kpi.hint %}<p class="meta ui-kpi-hint">{{ kpi.hint }}</p>{% endif %}
+</div>
+{% endif %}

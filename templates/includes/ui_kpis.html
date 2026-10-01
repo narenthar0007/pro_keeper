@@ -1,0 +1,7 @@
+<div class="stats ui-kpis">
+  {% for kpi in kpis %}
+    {% include "includes/ui_kpi.html" with kpi=kpi %}
+  {% empty %}
+    <p class="meta">No metrics.</p>
+  {% endfor %}
+</div>

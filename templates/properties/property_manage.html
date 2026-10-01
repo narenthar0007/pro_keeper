@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{{ property.title }} — Manage{% endblock %}
+
+{% block content %}
+<p class="meta"><a href="{% url 'my_properties' %}">My properties</a> / manage</p>
+{% ui_page_header page_header %}
+{% ui_kpis kpis %}
+
+<section class="panel">
+  <div class="section-head">
+    {% ui_heading text="Photos" level=2 %}
+  </div>
+  {% if images %}
+  <div class="photo-grid">
+    {% for image in images %}
+      <div>
+        <img src="{{ image.image.url }}" alt="{{ image.caption }}">
+        <form method="post" action="{% url 'image_delete' property.pk image.pk %}" style="margin-top:0.4rem">
+          {% csrf_token %}
+          <button class="btn btn-secondary btn-sm" type="submit">Delete</button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <form method="post" action="{% url 'image_add' property.pk %}" enctype="multipart/form-data" style="margin-top:1rem">
+    {% csrf_token %}
+    {{ image_form.as_p }}
+    <button class="btn btn-primary btn-sm" type="submit">Upload photo</button>
+  </form>
+</section>
+
+{% if property.description %}
+<section class="panel">
+  {% ui_heading text="Notes" level=2 %}
+  <p style="white-space:pre-wrap;margin:0">{{ property.description }}</p>
+</section>
+{% endif %}
+
+<section class="panel">
+  <div class="section-head">
+    {% ui_heading text="Tenants" level=2 %}
+    {% if property.is_for_rent %}{% url 'tenant_add' property.pk as tenant_add_url %}{% ui_button label="Add tenant" href=tenant_add_url variant="primary" size="sm" %}{% endif %}
+  </div>
+  {% if property.is_for_sale %}
+    <p class="meta">Tenants are not tracked for sale listings.</p>
+  {% elif tenants %}
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Advance</th>
+          <th>Lease</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tenant in tenants %}
+        <tr>
+          <td>
+            {{ tenant.name }}
+            {% if tenant.user %}<br><span class="meta">Portal: {{ tenant.user.username }}</span>{% endif %}
+            {% if tenant.lease_document %}<br><a href="{{ tenant.lease_document.url }}" target="_blank">Lease file</a>{% endif %}
+          </td>
+          <td>
+            Paid ₹{{ tenant.advance_paid|floatformat:0 }}<br>
+            <span class="meta">Refunded ₹{{ tenant.advance_refunded|floatformat:0 }} · Deducted ₹{{ tenant.advance_deduction|floatformat:0 }}</span><br>
+            <span class="meta">Balance ₹{{ tenant.advance_balance|floatformat:0 }}</span>
+          </td>
+          <td>
+            {% if tenant.move_in_date %}{{ tenant.move_in_date }}{% else %}—{% endif %}
+            {% if tenant.lease_end_date %} → {{ tenant.lease_end_date }}{% endif %}
+          </td>
+          <td>
+            {% if tenant.is_active %}
+              <span class="badge vacant">Active</span>
+            {% else %}
+              <span class="badge">Past</span>
+            {% endif %}
+          </td>
+          <td><a href="{% url 'tenant_edit' property.pk tenant.pk %}">Edit</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    {% ui_empty text="No tenants added yet." %}
+  {% endif %}
+</section>
+
+{% if property.is_for_rent %}
+<section class="panel">
+  <div class="section-head">
+    {% ui_heading text="Rent payments" level=2 %}
+    {% url 'payment_add' property.pk as payment_add_url %}
+    {% ui_button label="Record payment" href=payment_add_url variant="primary" size="sm" %}
+  </div>
+  {% if payments %}
+    <table>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Tenant</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for payment in payments %}
+        <tr>
+          <td>{{ payment.month_for|date:"M Y" }}</td>
+          <td>{% if payment.tenant %}{{ payment.tenant.name }}{% else %}—{% endif %}</td>
+          <td>₹{{ payment.amount|floatformat:0 }}{% if payment.late_fee %} + ₹{{ payment.late_fee|floatformat:0 }}{% endif %}</td>
+          <td><span class="badge {{ payment.status }}">{{ payment.get_status_display }}</span></td>
+          <td class="actions" style="margin:0">
+            <a class="btn btn-secondary btn-sm" href="{% url 'payment_receipt' property.pk payment.pk %}">Receipt</a>
+            <a class="btn btn-secondary btn-sm" href="{% url 'payment_receipt_pdf' property.pk payment.pk %}">PDF</a>
+            <form method="post" action="{% url 'payment_delete' property.pk payment.pk %}" onsubmit="return confirm('Delete this payment?');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-secondary btn-sm">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    {% ui_empty text="No payments recorded yet." %}
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="panel">
+  <div class="section-head">
+    {% ui_heading text="Expenses" level=2 %}
+  </div>
+  <form method="post" action="{% url 'expense_add' property.pk %}" class="filters" style="margin-top:0">
+    {% csrf_token %}
+    {{ expense_form.as_p }}
+    <button class="btn btn-primary btn-sm" type="submit">Add expense</button>
+  </form>
+  {% if expenses %}
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Title</th>
+          <th>Category</th>
+          <th>Amount</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for expense in expenses %}
+        <tr>
+          <td>{{ expense.expense_date }}</td>
+          <td>{{ expense.title }}</td>
+          <td>{{ expense.get_category_display }}</td>
+          <td>₹{{ expense.amount|floatformat:0 }}</td>
+          <td>
+            <form method="post" action="{% url 'expense_delete' property.pk expense.pk %}">
+              {% csrf_token %}
+              <button class="btn btn-secondary btn-sm" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="section-head">
+    {% ui_heading text="Complaints" level=2 %}
+  </div>
+  {% if complaints %}
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Tenant</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for complaint in complaints %}
+        <tr>
+          <td>{{ complaint.title }}</td>
+          <td>{% if complaint.tenant %}{{ complaint.tenant.name }}{% else %}—{% endif %}</td>
+          <td><span class="badge">{{ complaint.get_status_display }}</span></td>
+          <td><a href="{% url 'complaint_update' property.pk complaint.pk %}">Update</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    {% ui_empty text="No complaints yet." %}
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="section-head">
+    {% ui_heading text="Documents" level=2 %}
+    {% url 'document_add' property.pk as document_add_url %}
+    {% ui_button label="Upload" href=document_add_url variant="primary" size="sm" %}
+  </div>
+  {% if documents %}
+  <ul>
+    {% for doc in documents %}
+    <li><a href="{{ doc.file.url }}" target="_blank">{{ doc.title }}</a> · {{ doc.get_doc_type_display }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  {% ui_empty text="No documents yet." %}
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="section-head">
+    {% ui_heading text="Meter readings" level=2 %}
+    {% url 'meter_add' property.pk as meter_add_url %}
+    {% ui_button label="Add reading" href=meter_add_url variant="primary" size="sm" %}
+  </div>
+  {% if meters %}
+  <table>
+    <thead><tr><th>Date</th><th>Type</th><th>Reading</th><th>Billed</th></tr></thead>
+    <tbody>
+      {% for row in meters %}
+      <tr>
+        <td>{{ row.reading_date }}</td>
+        <td>{{ row.get_meter_type_display }}</td>
+        <td>{{ row.reading_value }}</td>
+        <td>₹{{ row.billed_amount|floatformat:0 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  {% ui_empty text="No readings yet." %}
+  {% endif %}
+</section>
+
+{% if is_owner %}
+<section class="panel">
+  <div class="section-head">
+    {% ui_heading text="Share with agent / co-owner" level=2 %}
+  </div>
+  <form method="post" action="{% url 'share_add' property.pk %}">
+    {% csrf_token %}
+    {{ share_form.as_p }}
+    <button class="btn btn-primary btn-sm" type="submit">Share</button>
+  </form>
+  {% if shares %}
+    <table style="margin-top:1rem">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Role</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for share in shares %}
+        <tr>
+          <td>{{ share.user.username }}</td>
+          <td>{{ share.get_role_display }}</td>
+          <td>
+            <form method="post" action="{% url 'share_remove' property.pk share.pk %}">
+              {% csrf_token %}
+              <button class="btn btn-secondary btn-sm" type="submit">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

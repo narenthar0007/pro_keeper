@@ -1,0 +1,93 @@
+{% extends "accounts/admin/base_admin.html" %}
+{% load ui %}
+
+{% block title %}UI components — Admin{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+
+<section class="panel">
+  {% ui_heading text="Import" level=2 tooltip="One Python module + one template tag library." %}
+  <pre class="meta" style="white-space:pre-wrap">from accounts.components import build_button, build_heading, build_table, ...
+{% templatetag openblock %} load ui {% templatetag closeblock %}</pre>
+</section>
+
+<section class="panel">
+  {% ui_heading demo_heading %}
+</section>
+
+<section class="panel">
+  {% ui_heading text="Buttons" level=2 tooltip="build_button(label, href='', variant='primary|secondary|danger', size='sm', open_popup='id')" %}
+  <div class="actions">
+    {% for btn in demo_buttons %}{% ui_button btn %}{% endfor %}
+  </div>
+  {% ui_popup demo_popup %}
+</section>
+
+<section class="panel">
+  {% ui_heading text="KPIs" level=2 tooltip="build_kpis([{label, value, tone, href, hint}, ...])" %}
+  {% ui_kpis demo_kpis %}
+</section>
+
+<section class="panel">
+  {% ui_heading text="Filter / search" level=2 tooltip="build_filter(fields, submit_label='Filter')" %}
+  {% ui_filter demo_filter %}
+</section>
+
+<section class="panel">
+  {% ui_heading text="Table" level=2 tooltip="build_table(columns=[..., tooltip=...], rows=[...]) — column (i) explains each field" %}
+  {% ui_table demo_table %}
+</section>
+
+<section class="panel">
+  {% ui_heading text="Badges" level=2 tooltip="build_badge(label, tone='occupied|vacant|paid|pending')" %}
+  {% ui_badge label="Occupied" tone="occupied" %}
+  {% ui_badge label="Vacant" tone="vacant" %}
+  {% ui_badge label="Paid" tone="paid" %}
+  {% ui_badge label="Pending" tone="pending" %}
+</section>
+
+<section class="panel">
+  {% ui_heading text="Empty state" level=2 tooltip="build_empty(text, action_label='', action_href='')" %}
+  {% ui_empty demo_empty %}
+</section>
+
+<section class="panel">
+  {% ui_heading text="Page header" level=2 tooltip="build_page_header(title, subtitle='', tooltip='', actions=[...])" %}
+  {% ui_page_header title="Example page" subtitle="Subtitle under the title" tooltip="Info icon explains this screen." %}
+</section>
+
+<section class="panel">
+  {% ui_heading text="Field + tip" level=2 tooltip="build_field(..., tooltip='Explain this input')" %}
+  {% ui_field name="demo_email" label="Email" type="email" placeholder="you@example.com" tooltip="Used for login and enquiry replies." %}
+</section>
+
+<section class="panel">
+  {% ui_heading text="Alert" level=2 tooltip="build_alert(text, level='info|warn|error')" %}
+  <ul class="messages ui-alerts">{% ui_alert demo_alert %}</ul>
+</section>
+
+<section class="panel">
+  {% ui_heading text="Page not found" level=2 tooltip="build_status_page('Page not found', code='404')" %}
+  <p class="status-code" aria-hidden="true">404</p>
+  {% ui_page_header demo_404.header %}
+  {% ui_kpis demo_404.kpis %}
+  {% if demo_404.alert %}
+  <ul class="messages ui-alerts">{% ui_alert demo_404.alert %}</ul>
+  {% endif %}
+  {% ui_empty demo_404.empty %}
+  <div class="actions" style="margin-top:1rem">
+    {% for btn in demo_404.actions %}{% ui_button btn %}{% endfor %}
+  </div>
+</section>
+
+<section class="panel">
+  {% ui_heading text="Status / error / under construction" level=2 tooltip="build_status_page(title, code='', hint='')" %}
+  <p class="meta">Preview designed 404, 403, 500, and coming-soon screens even while DEBUG is on.</p>
+  {% ui_kpis demo_status.kpis %}
+  {% ui_empty demo_status.empty %}
+  <div class="actions" style="margin-top:1rem">
+    {% for btn in demo_status.actions %}{% ui_button btn %}{% endfor %}
+  </div>
+</section>
+{% endblock %}

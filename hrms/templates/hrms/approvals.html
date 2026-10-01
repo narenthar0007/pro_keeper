@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Approvals — HRMS{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+
+<section class="panel">
+  <h2>Pending employees</h2>
+  {% if pending_emps %}
+  <table class="ui-table">
+    <thead><tr><th>Code</th><th>Name</th><th>Mobile</th><th></th></tr></thead>
+    <tbody>
+    {% for e in pending_emps %}
+      <tr>
+        <td>{{ e.emp_code }}</td>
+        <td>{{ e.name }}</td>
+        <td>{{ e.mobile }}</td>
+        <td>
+          {% if can_approve %}
+          <form method="post" style="display:inline">{% csrf_token %}
+            <input type="hidden" name="kind" value="employee">
+            <input type="hidden" name="pk" value="{{ e.pk }}">
+            <button name="action" value="approve" type="submit">Approve</button>
+            <button name="action" value="reject" type="submit">Reject</button>
+          </form>
+          {% else %}
+          Waiting for owner
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="meta">No pending employees.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Pending regularize</h2>
+  {% if pending_reg %}
+  <table class="ui-table">
+    <thead><tr><th>Date</th><th>Employee</th><th>Remark</th><th></th></tr></thead>
+    <tbody>
+    {% for a in pending_reg %}
+      <tr>
+        <td>{{ a.date }}</td>
+        <td>{{ a.employee.name }}</td>
+        <td>{{ a.remark }}</td>
+        <td>
+          {% if can_approve %}
+          <form method="post" style="display:inline">{% csrf_token %}
+            <input type="hidden" name="kind" value="regularize">
+            <input type="hidden" name="pk" value="{{ a.pk }}">
+            <button name="action" value="approve" type="submit">Approve</button>
+            <button name="action" value="reject" type="submit">Reject</button>
+          </form>
+          {% else %}
+          Waiting for owner
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="meta">No pending regularize requests.</p>
+  {% endif %}
+</section>
+{% endblock %}

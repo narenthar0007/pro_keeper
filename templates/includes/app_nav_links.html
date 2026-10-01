@@ -1,0 +1,9 @@
+{% for item in nav_items %}
+<a class="app-nav-item {% if item.active %}active{% endif %}" href="{{ item.url }}">
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">{{ item.icon_svg|safe }}</svg>
+  <span>{{ item.label }}</span>
+  {% if item.badge_count %}
+    <span class="app-badge">{{ item.badge_count }}</span>
+  {% endif %}
+</a>
+{% endfor %}

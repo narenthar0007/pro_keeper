@@ -1,0 +1,34 @@
+{% extends "accounts/admin/base_admin.html" %}
+{% load ui %}
+
+{% block title %}{% if theme %}{{ theme.name }} theme{% else %}Brand{% endif %} — Admin{% endblock %}
+
+{% block content %}
+{% if page_header %}{% ui_page_header page_header %}{% else %}
+{% ui_heading text="Theme settings" level=1 tooltip="Colors, fonts, and table style for the active brand." %}
+{% endif %}
+
+<section class="panel form-wide">
+  <form method="post" style="margin-top:0.5rem">
+    {% csrf_token %}
+    <div class="theme-grid">
+      {% for field in form %}
+      <div class="form-field">
+        <label for="{{ field.id_for_label }}">
+          <span>{{ field.label }}</span>
+          {% if field.help_text %}
+          <button type="button" class="ui-tip" data-tooltip="{{ field.help_text }}" title="{{ field.help_text }}">i</button>
+          {% endif %}
+        </label>
+        {{ field }}
+        {{ field.errors }}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="actions form-actions">
+      {% ui_button label="Save" variant="primary" type="submit" %}
+      <a class="btn btn-secondary" href="{% url 'staff_brands' %}">Back to brands</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

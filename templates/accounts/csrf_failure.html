@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Form expired — PropKeep{% endblock %}
+
+{% block content %}
+<article class="status-page">
+  <p class="status-code" aria-hidden="true">403</p>
+  {% ui_page_header title="Form expired" subtitle="Security check failed, so the request was blocked." %}
+  {% ui_empty text="Refresh the page and submit the form again." %}
+  <div class="actions" style="margin-top:1rem">
+    {% ui_button label="Go home" href="/" variant="primary" %}
+  </div>
+</article>
+{% endblock %}

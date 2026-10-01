@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Tenant portal — PropKeep{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+{% ui_kpis kpis %}
+
+{% if due_items %}
+<section class="panel">
+  {% ui_heading text="Due this month" level=2 %}
+  <ul>
+    {% for item in due_items %}
+    <li>{{ item.title }}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if pending_payments %}
+<section class="panel">
+  {% ui_heading text="Pay now" level=2 %}
+  <table>
+    <thead><tr><th>Month</th><th>Property</th><th>Amount</th><th></th></tr></thead>
+    <tbody>
+      {% for payment in pending_payments %}
+      <tr>
+        <td>{{ payment.month_for|date:"M Y" }}</td>
+        <td>{{ payment.property.title }}</td>
+        <td>₹{{ payment.amount|floatformat:0 }}{% if payment.late_fee %} + late ₹{{ payment.late_fee|floatformat:0 }}{% endif %}</td>
+        <td>
+          <form method="post" action="{% url 'tenant_pay' payment.pk %}">
+            {% csrf_token %}
+            {% ui_button label="Pay" variant="primary" size="sm" type="submit" %}
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<section class="panel">
+  {% ui_heading text="Your homes" level=2 %}
+  {% if profiles %}
+  <div class="grid">
+    {% for profile in profiles %}
+    <article class="listing">
+      <h3>{{ profile.property.title }}</h3>
+      <p class="meta">{{ profile.property.unit_label }} · {{ profile.property.city }}</p>
+      <p class="price">Rent ₹{{ profile.property.monthly_rent|floatformat:0 }}</p>
+      <p class="meta">Advance balance ₹{{ profile.advance_balance|floatformat:0 }}</p>
+      {% if profile.lease_end_date %}<p class="meta">Lease ends {{ profile.lease_end_date }}</p>{% endif %}
+      {% if profile.lease_document %}
+        <a href="{{ profile.lease_document.url }}" target="_blank">Lease document</a>
+      {% endif %}
+      {% url 'thread_view' profile.property_id as msg_url %}
+      <p>{% ui_button label="Message owner" href=msg_url variant="secondary" size="sm" %}</p>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  {% ui_empty text="No tenant profile is linked to this login yet." %}
+  {% endif %}
+</section>
+
+<section class="panel">
+  {% ui_heading text="Rent payments" level=2 %}
+  <table>
+    <thead>
+      <tr>
+        <th>Month</th>
+        <th>Property</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for payment in payments %}
+      <tr>
+        <td>{{ payment.month_for|date:"M Y" }}</td>
+        <td>{{ payment.property.title }}</td>
+        <td>₹{{ payment.amount|floatformat:0 }}</td>
+        <td>{% ui_badge label=payment.get_status_display tone=payment.status %}</td>
+        <td>
+          <a href="{% url 'payment_receipt' payment.property_id payment.pk %}">Receipt</a>
+          · <a href="{% url 'payment_receipt_pdf' payment.property_id payment.pk %}">PDF</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5">{% ui_empty text="No payments yet." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% if documents %}
+<section class="panel">
+  {% ui_heading text="Your documents" level=2 %}
+  <ul>
+    {% for doc in documents %}
+    <li><a href="{{ doc.file.url }}" target="_blank">{{ doc.title }}</a> · {{ doc.get_doc_type_display }}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="panel">
+  {% ui_heading text="Raise a complaint" level=2 %}
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="form-field">
+      <label for="property_id">Property</label>
+      <select name="property_id" id="property_id" required>
+        {% for profile in profiles %}
+          <option value="{{ profile.property_id }}">{{ profile.property.title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% for field in complaint_fields %}
+      {% ui_field field %}
+    {% endfor %}
+    <div class="actions form-actions">
+      {% ui_button label="Submit complaint" variant="primary" type="submit" %}
+    </div>
+  </form>
+</section>
+
+<section class="panel">
+  {% ui_heading text="Your complaints" level=2 %}
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Property</th>
+        <th>Status</th>
+        <th>Owner notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for complaint in complaints %}
+      <tr>
+        <td>{{ complaint.title }}</td>
+        <td>{{ complaint.property.title }}</td>
+        <td>{{ complaint.get_status_display }}</td>
+        <td>{{ complaint.owner_notes|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">{% ui_empty text="No complaints." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

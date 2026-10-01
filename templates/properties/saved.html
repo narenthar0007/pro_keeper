@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Saved listings — PropKeep{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+<section class="panel">
+  {% ui_table table %}
+</section>
+{% endblock %}

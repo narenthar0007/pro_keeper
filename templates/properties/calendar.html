@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Calendar — PropKeep{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+<p class="meta">
+  <a href="?year={{ prev.year }}&month={{ prev.month }}">Previous</a>
+  · {{ month_label }} ·
+  <a href="?year={{ next.year }}&month={{ next.month }}">Next</a>
+</p>
+<section class="panel">
+  <table class="calendar-table">
+    <thead>
+      <tr>
+        <th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for week in weeks %}
+      <tr>
+        {% for cell in week %}
+        <td {% if cell.today %}class="today"{% endif %}>
+          {% if cell %}
+            <strong>{{ cell.day }}</strong>
+            {% for ev in cell.events %}
+              <div class="meta"><a href="{{ ev.href }}">{{ ev.label }}</a></div>
+            {% endfor %}
+          {% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

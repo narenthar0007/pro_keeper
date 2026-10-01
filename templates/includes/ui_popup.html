@@ -1,0 +1,41 @@
+{% load ui %}
+<dialog
+  class="ui-popup ui-popup--{{ popup.size }}"
+  id="{{ popup.id }}"
+  {% if popup.open %}open{% endif %}
+  data-ui-popup
+>
+  <div class="ui-popup-panel">
+    <div class="ui-popup-head">
+      {% if popup.title %}<h2 class="ui-popup-title">{{ popup.title }}</h2>{% endif %}
+      <button type="button" class="ui-popup-x" data-ui-close aria-label="Close">&times;</button>
+    </div>
+
+    {% if popup.form_action %}
+    <form method="{{ popup.form_method }}" action="{{ popup.form_action }}" class="ui-popup-form">
+      {% if popup.include_csrf %}{% csrf_token %}{% endif %}
+      <div class="ui-popup-body">
+        {% if popup.body_html %}{{ popup.body|safe }}{% else %}{{ popup.body }}{% endif %}
+      </div>
+      {% if popup.footer_buttons %}
+      <div class="ui-popup-footer actions">
+        {% for button in popup.footer_buttons %}
+          {% ui_button button %}
+        {% endfor %}
+      </div>
+      {% endif %}
+    </form>
+    {% else %}
+    <div class="ui-popup-body">
+      {% if popup.body_html %}{{ popup.body|safe }}{% else %}{{ popup.body }}{% endif %}
+    </div>
+    {% if popup.footer_buttons %}
+    <div class="ui-popup-footer actions">
+      {% for button in popup.footer_buttons %}
+        {% ui_button button %}
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endif %}
+  </div>
+</dialog>

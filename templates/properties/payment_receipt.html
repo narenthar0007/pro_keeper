@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Rent receipt #{{ payment.pk }}{% endblock %}
+
+{% block extra_head %}
+<style>
+@media print {
+  .site-header, .site-footer, .no-print { display: none !important; }
+  body { background: #fff; }
+  .panel { box-shadow: none; border: 1px solid #ccc; }
+}
+.receipt-line { display: flex; justify-content: space-between; gap: 1rem; margin: 0.45rem 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="actions no-print">
+  <button class="btn btn-primary" onclick="window.print()">Print</button>
+  <a class="btn btn-secondary" href="{% url 'payment_receipt_pdf' property.pk payment.pk %}">Download PDF</a>
+  <a class="btn btn-secondary" href="{% url 'property_manage' property.pk %}">Back</a>
+</div>
+
+<section class="panel" style="max-width:640px;margin-top:1rem">
+  <h1 style="font-family:var(--font-display)">Rent Receipt</h1>
+  <p class="meta">PropKeep · Receipt #{{ payment.pk }}</p>
+  <hr style="border:none;border-top:1px solid var(--line);margin:1rem 0">
+  <div class="receipt-line"><span>Property</span><strong>{{ property.title }}</strong></div>
+  <div class="receipt-line"><span>Address</span><span>{{ property.address }}, {{ property.city }}</span></div>
+  <div class="receipt-line"><span>Tenant</span><span>{% if payment.tenant %}{{ payment.tenant.name }}{% else %}—{% endif %}</span></div>
+  <div class="receipt-line"><span>Month</span><span>{{ payment.month_for|date:"F Y" }}</span></div>
+  <div class="receipt-line"><span>Amount</span><strong>₹{{ payment.amount }}</strong></div>
+  {% if payment.late_fee %}
+  <div class="receipt-line"><span>Late fee</span><span>₹{{ payment.late_fee }}</span></div>
+  {% endif %}
+  <div class="receipt-line"><span>Status</span><span>{{ payment.get_status_display }}</span></div>
+  <div class="receipt-line"><span>Payment date</span><span>{{ payment.payment_date }}</span></div>
+  {% if payment.notes %}
+  <div class="receipt-line"><span>Notes</span><span>{{ payment.notes }}</span></div>
+  {% endif %}
+  <p class="meta" style="margin-top:1.5rem">Issued for owner {{ property.owner.username }}</p>
+</section>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "accounts/admin/base_admin.html" %}
+{% load ui %}
+
+{% block title %}Activity logs — Admin{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+{% ui_filter logs_filter %}
+<section class="panel">
+  {% ui_table logs_table %}
+  {% ui_pagination paging=paging page=page filter_query=filter_query %}
+</section>
+{% endblock %}

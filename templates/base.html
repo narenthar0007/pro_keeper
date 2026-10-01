@@ -1,0 +1,81 @@
+{% load static ui %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ brand_name }}{% endblock %}</title>
+  {% if brand_icon_url %}
+  <link rel="icon" href="{{ brand_icon_url }}" type="image/png">
+  {% endif %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=Syne:wght@600;700;800&family=Cinzel:wght@600;700&family=Josefin+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <style>
+    :root {
+      --accent: {{ site_theme.primary_color }};
+      --accent-deep: {{ site_theme.secondary_color }};
+      --paper: {{ site_theme.background_color }};
+      --surface: {{ site_theme.surface_color }};
+      --ink: {{ site_theme.text_color }};
+      --font-display: {{ theme_display_font|safe }};
+      --font-body: {{ theme_body_font|safe }};
+      --radius: {{ theme_radius }};
+      --header-bg: {{ site_theme.header_color }};
+      --header-text: {{ site_theme.header_text_color }};
+      --header-active: {{ site_theme.header_active_color }};
+      --footer-bg: {{ site_theme.footer_bg_color }};
+      --footer-text: {{ site_theme.footer_text_color }};
+    }
+    .btn-primary {
+      background: {{ site_theme.button_color }};
+      color: {{ site_theme.button_text_color }};
+    }
+    .app-header { background: var(--header-bg); color: var(--header-text); }
+    .app-side-nav,
+    .admin-sidebar {
+      background: var(--header-bg);
+      color: var(--header-text);
+    }
+    .site-footer {
+      background: var(--footer-bg);
+      color: var(--footer-text);
+      border-color: transparent;
+    }
+    body.table-compact table th,
+    body.table-compact table td { padding: 0.4rem 0.45rem; font-size: 0.88rem; }
+    body.table-bordered table th,
+    body.table-bordered table td { border: 1px solid var(--line); }
+    body.table-striped table tbody tr:nth-child(even) td { background: #f3f4f6; }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="table-{{ site_theme.table_format }}{% if use_site_side_nav %} has-side-nav{% endif %}">
+  {% include "includes/app_header.html" %}
+  {% if rent_reminder_banner %}
+  <div class="rent-reminder-banner is-{{ rent_reminder_banner.level }}" role="status">
+    <div class="rent-reminder-banner-inner">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+        <path d="M10 21a2 2 0 0 0 4 0"/>
+      </svg>
+      <p><strong>{{ rent_reminder_banner.title }}.</strong> {{ rent_reminder_banner.text }}</p>
+      <a href="{% url 'user_settings' %}">Settings</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <main class="container">
+    {% ui_alerts %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    {{ brand_footer }}
+    {% if brand_base_url %}<span class="meta" style="margin-left:0.5rem">· {{ brand_base_url }}</span>{% endif %}
+  </footer>
+  <script src="{% static 'js/ui.js' %}" defer></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

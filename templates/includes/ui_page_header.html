@@ -1,0 +1,14 @@
+{% load ui %}
+<div class="section-head ui-page-header">
+  <div>
+    {% ui_heading text=header.title level=header.level tooltip=header.tooltip %}
+    {% if header.subtitle %}<p class="meta">{{ header.subtitle }}</p>{% endif %}
+  </div>
+  {% if header.actions %}
+  <div class="actions" style="margin:0">
+    {% for btn in header.actions %}
+      {% ui_button btn %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>

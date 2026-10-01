@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Browse properties — PropKeep{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <p class="hero-kicker">PropKeep marketplace</p>
+  <h1>Find space. Track rent.</h1>
+  <p>Search public listings, then manage advance, tenants, and payments in your private dashboard.</p>
+  {% if hero_actions %}
+  <div class="actions">
+    {% for btn in hero_actions %}
+      {% ui_button btn %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+
+{% ui_filter listings_filter %}
+{% ui_listings listing_cards empty=listings_empty %}
+{% endblock %}

@@ -1,0 +1,39 @@
+{% if table.caption %}<p class="meta ui-table-caption">{{ table.caption }}</p>{% endif %}
+<div class="ui-table-wrap">
+  <table
+    id="{{ table.id }}"
+    class="ui-table{% if table.striped %} is-striped{% endif %}{% if table.compact %} is-compact{% endif %}{% if table.hover %} is-hover{% endif %}{% if table.sticky_header %} is-sticky{% endif %}"
+  >
+    <thead>
+      <tr>
+        {% for col in table.columns %}
+        <th
+          {% if col.width %}style="width:{{ col.width }}"{% endif %}
+          class="align-{{ col.align|default:'left' }} {{ col.class }}"
+        >
+          <span class="ui-th-label">{{ col.label }}</span>
+          {% if col.tooltip %}
+          <button type="button" class="ui-tip" aria-label="More info" data-tooltip="{{ col.tooltip }}" title="{{ col.tooltip }}">i</button>
+          {% endif %}
+        </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in prepared_rows %}
+      <tr>
+        {% for cell in row %}
+        <td
+          {% if cell.width %}style="width:{{ cell.width }}"{% endif %}
+          class="align-{{ cell.align }} {{ cell.class }}"
+        >{{ cell.value }}</td>
+        {% endfor %}
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="{{ table.columns|length|default:1 }}" class="ui-table-empty">{{ table.empty_text }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

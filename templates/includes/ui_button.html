@@ -1,0 +1,20 @@
+{% if button.href %}
+<a
+  {% if button.id %}id="{{ button.id }}"{% endif %}
+  class="btn btn-{{ button.variant }}{% if button.size %} btn-{{ button.size }}{% endif %}{% if button.full_width %} is-full{% endif %} {{ button.class_name }}"
+  href="{{ button.href }}"
+  {% if button.open_popup %}data-ui-open="{{ button.open_popup }}"{% endif %}
+  {% if button.attrs %}{{ button.attrs|safe }}{% endif %}
+>{{ button.label }}</a>
+{% else %}
+<button
+  {% if button.id %}id="{{ button.id }}"{% endif %}
+  class="btn btn-{{ button.variant }}{% if button.size %} btn-{{ button.size }}{% endif %}{% if button.full_width %} is-full{% endif %} {{ button.class_name }}"
+  type="{{ button.type }}"
+  {% if button.name %}name="{{ button.name }}"{% endif %}
+  {% if button.value %}value="{{ button.value }}"{% endif %}
+  {% if button.disabled %}disabled{% endif %}
+  {% if button.open_popup %}data-ui-open="{{ button.open_popup }}"{% endif %}
+  {% if button.attrs %}{{ button.attrs|safe }}{% endif %}
+>{{ button.label }}</button>
+{% endif %}

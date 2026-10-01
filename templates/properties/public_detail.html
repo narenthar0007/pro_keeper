@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{{ property.title }} — PropKeep{% endblock %}
+
+{% block content %}
+<article class="panel">
+  <div class="section-head">
+    <div>
+      {% ui_badge label=property.get_property_type_display %}
+      {% ui_badge label=property.get_listing_type_display %}
+      {% if property.is_for_rent %}
+        {% if property.is_occupied %}
+          {% ui_badge label="Occupied" tone="occupied" %}
+        {% else %}
+          {% ui_badge label="Available" tone="vacant" %}
+        {% endif %}
+      {% else %}
+        {% ui_badge label=property.get_sale_status_display %}
+      {% endif %}
+      {% ui_heading text=property.title level=1 %}
+      <p class="meta">
+        {% if property.building %}{{ property.building.name }} · {% endif %}
+        {% if property.unit_number %}Unit {{ property.unit_number }} · {% elif property.door_number %}Door {{ property.door_number }} · {% endif %}
+        {{ property.address }}, {{ property.city }}{% if property.pincode %} {{ property.pincode }}{% endif %}
+      </p>
+    </div>
+    <div class="actions" style="margin:0">
+      {% if property.contact_phone %}
+        <a class="btn btn-primary btn-sm" target="_blank" rel="noopener"
+           href="https://wa.me/{{ property.contact_phone }}?text=Hi%2C%20I%20saw%20{{ property.title|urlencode }}%20on%20PropKeep">
+          WhatsApp owner
+        </a>
+      {% endif %}
+      {% url 'public_listings' as browse_url %}
+      {% ui_button label="Back to browse" href=browse_url variant="secondary" %}
+      {% if user.is_authenticated %}
+      <form method="post" action="{% url 'saved_toggle' property.pk %}" style="display:inline">
+        {% csrf_token %}
+        {% if is_saved %}
+        {% ui_button label="Unsave" variant="secondary" size="sm" type="submit" %}
+        {% else %}
+        {% ui_button label="Save listing" variant="secondary" size="sm" type="submit" %}
+        {% endif %}
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if property.images.all %}
+  <div class="photo-grid">
+    {% for image in property.images.all %}
+      <img src="{{ image.image.url }}" alt="{{ image.caption|default:property.title }}">
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if property.is_for_sale %}
+  <p class="price">{{ property.display_price }}</p>
+  {% if property.price_negotiable %}<p class="meta">Price negotiable</p>{% endif %}
+  <p class="meta">Furnishing: {{ property.get_furnishing_display }}</p>
+  {% else %}
+  <p class="price">₹{{ property.monthly_rent|floatformat:0 }} / month</p>
+  <p class="meta">Advance / deposit: ₹{{ property.advance_amount|floatformat:0 }}</p>
+  {% endif %}
+
+  <div style="margin-top:1.25rem">
+    <p>
+      {% if property.street %}<strong>Street:</strong> {{ property.street }} &nbsp;·&nbsp; {% endif %}
+      {% if property.landmark %}<strong>Landmark:</strong> {{ property.landmark }} &nbsp;·&nbsp; {% endif %}
+      {% if property.state %}<strong>State:</strong> {{ property.state }}{% endif %}
+      {% if property.country %} &nbsp;·&nbsp; <strong>Country:</strong> {{ property.country }}{% endif %}
+    </p>
+    <p><strong>Bedrooms:</strong> {{ property.bedrooms }} &nbsp;·&nbsp; <strong>Bathrooms:</strong> {{ property.bathrooms }}
+      {% if property.area_sqft %} &nbsp;·&nbsp; <strong>Area:</strong> {{ property.area_sqft }} sq.ft{% endif %}
+      {% if property.year_of_building %} &nbsp;·&nbsp; <strong>Built:</strong> {{ property.year_of_building }}{% endif %}
+    </p>
+    {% if amenity_labels %}
+      <p><strong>Amenities:</strong> {{ amenity_labels|join:", " }}</p>
+    {% endif %}
+    {% if property.description %}
+      <p style="margin-top:1rem;white-space:pre-wrap">{{ property.description }}</p>
+    {% endif %}
+    <p class="meta" style="margin-top:1.25rem">Listed by {{ property.owner.username }}</p>
+  </div>
+
+  {% if property.latitude and property.longitude %}
+  <div class="map-wrap">
+    {% ui_heading text="Map" level=2 %}
+    <iframe
+      title="Map"
+      loading="lazy"
+      referrerpolicy="no-referrer-when-downgrade"
+      src="https://maps.google.com/maps?q={{ property.latitude }},{{ property.longitude }}&z=15&output=embed">
+    </iframe>
+    <p class="meta">
+      <a target="_blank" rel="noopener"
+         href="https://www.openstreetmap.org/?mlat={{ property.latitude }}&mlon={{ property.longitude }}#map=16/{{ property.latitude }}/{{ property.longitude }}">
+        Open in OpenStreetMap
+      </a>
+    </p>
+  </div>
+  {% endif %}
+</article>
+
+<section class="panel">
+  {% ui_form form=enquiry_form title="Send an enquiry" submit_label="Send enquiry" %}
+</section>
+{% endblock %}

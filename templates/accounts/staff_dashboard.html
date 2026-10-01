@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Admin panel — PropKeep{% endblock %}
+
+{% block content %}
+<div class="section-head">
+  <div>
+    <p class="hero-kicker">Staff admin</p>
+    <h1>Admin panel</h1>
+    <p class="meta">All users and activity logs across PropKeep.</p>
+  </div>
+  <div class="actions" style="margin:0">
+    <a class="btn btn-secondary" href="{% url 'staff_users' %}">All users</a>
+    <a class="btn btn-primary" href="{% url 'staff_activity_logs' %}">Activity logs</a>
+    <a class="btn btn-secondary" href="/admin/">Django admin</a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <p class="label">Users</p>
+    <p class="value">{{ user_count }}</p>
+  </div>
+  <div class="stat">
+    <p class="label">Active</p>
+    <p class="value">{{ active_count }}</p>
+  </div>
+  <div class="stat">
+    <p class="label">Staff</p>
+    <p class="value">{{ staff_count }}</p>
+  </div>
+  <div class="stat">
+    <p class="label">Log entries</p>
+    <p class="value">{{ log_count }}</p>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <section class="panel">
+    <div class="section-head">
+      <h2>Recent activity</h2>
+      <a href="{% url 'staff_activity_logs' %}">View all</a>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>When</th>
+          <th>User</th>
+          <th>Action</th>
+          <th>Path</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in recent_logs %}
+        <tr>
+          <td>{{ log.created_at|date:"d M H:i" }}</td>
+          <td>{{ log.username }}</td>
+          <td><span class="badge">{{ log.get_action_display }}</span></td>
+          <td><span class="meta">{{ log.method }} {{ log.path }}</span></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="empty">No logs yet. Browse the site to generate activity.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="panel">
+    <div class="section-head">
+      <h2>Newest users</h2>
+      <a href="{% url 'staff_users' %}">View all</a>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Joined</th>
+          <th>Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in recent_users %}
+        <tr>
+          <td><a href="{% url 'staff_user_detail' u.pk %}">{{ u.username }}</a><br><span class="meta">{{ u.email }}</span></td>
+          <td>{{ u.date_joined|date:"d M Y" }}</td>
+          <td>
+            {% if u.is_staff %}<span class="badge">Staff</span>{% else %}<span class="badge vacant">User</span>{% endif %}
+            {% if not u.is_active %}<span class="badge occupied">Inactive</span>{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="empty">No users.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2 style="margin-top:1.5rem">Top paths</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Path</th>
+          <th>Hits</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in top_paths %}
+        <tr>
+          <td class="meta">{{ row.path }}</td>
+          <td>{{ row.total }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="2" class="empty">No data yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

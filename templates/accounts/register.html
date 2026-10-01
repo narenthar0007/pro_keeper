@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Register — PropKeep{% endblock %}
+
+{% block content %}
+{% ui_form form=form title="Create account" kicker="Get started" subtitle="List properties and track rent in minutes." submit_label="Register" footer_html=register_footer %}
+{% endblock %}

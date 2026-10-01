@@ -1,0 +1,15 @@
+{% extends "accounts/admin/base_admin.html" %}
+{% load ui %}
+
+{% block title %}Users — Admin{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+{% ui_filter users_filter %}
+{% ui_popup users_help_popup %}
+
+<section class="panel">
+  {% ui_table users_table %}
+  {% ui_pagination paging=paging page=page filter_query=filter_query %}
+</section>
+{% endblock %}

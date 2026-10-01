@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Site update — HRMS{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+<section class="panel">
+  <form method="post">
+    {% csrf_token %}
+    {% ui_form form=form submit_label="Save update" %}
+    <h3>Optional material line</h3>
+    {% ui_form form=material_form submit_label="" %}
+    <button type="submit">Save update</button>
+  </form>
+</section>
+{% endblock %}

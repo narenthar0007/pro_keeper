@@ -1,0 +1,10 @@
+{% extends "accounts/admin/base_admin.html" %}
+{% load ui %}
+
+{% block title %}{% if promotion %}Edit promotion{% else %}Add promotion{% endif %} — Admin{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+{% url 'staff_promotions' as cancel_url %}
+{% ui_form form=form title="" submit_label="Save promotion" cancel_href=cancel_url %}
+{% endblock %}

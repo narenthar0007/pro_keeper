@@ -1,0 +1,77 @@
+{% load static ui %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Admin — PropKeep{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&family=Syne:wght@700;800&family=Cinzel:wght@600;700&family=Josefin+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+  <style>
+    :root {
+      --accent: {{ site_theme.primary_color }};
+      --accent-deep: {{ site_theme.secondary_color }};
+      --btn: {{ site_theme.button_color }};
+      --btn-text: {{ site_theme.button_text_color }};
+      --paper: {{ site_theme.background_color }};
+      --surface: {{ site_theme.surface_color }};
+      --ink: {{ site_theme.text_color }};
+      --font-display: {{ theme_display_font|safe }};
+      --font-body: {{ theme_body_font|safe }};
+      --radius: {{ theme_radius }};
+      --header-bg: {{ site_theme.header_color }};
+      --header-text: {{ site_theme.header_text_color }};
+      --header-active: {{ site_theme.header_active_color }};
+      --footer-bg: {{ site_theme.footer_bg_color }};
+      --footer-text: {{ site_theme.footer_text_color }};
+    }
+    .app-header { background: var(--header-bg); color: var(--header-text); }
+    .admin-sidebar {
+      background: var(--header-bg);
+      color: var(--header-text);
+    }
+    body.table-{{ site_theme.table_format }} table th,
+    body.table-{{ site_theme.table_format }} table td {
+      {% if site_theme.table_format == 'compact' %}padding: 0.4rem 0.45rem; font-size: 0.88rem;{% endif %}
+    }
+    body.table-bordered table th,
+    body.table-bordered table td { border: 1px solid var(--line); }
+    body.table-striped table tbody tr:nth-child(even) td { background: #f3f4f6; }
+    .btn-primary { background: var(--btn); color: var(--btn-text); }
+  </style>
+</head>
+<body class="admin-body table-{{ site_theme.table_format }}">
+  {% include "includes/app_header.html" %}
+
+  <div class="admin-shell">
+    <aside class="admin-sidebar">
+      <a class="brand admin-brand" href="{% url 'staff_dashboard' %}">{{ brand_name }} <span>Admin</span></a>
+      <p class="admin-side-note">Shared admin for all brands · active: {{ brand_name }}</p>
+      <nav class="admin-side-nav">
+        {% for item in admin_nav %}
+          {% if item.url_kwargs %}
+            <a class="{% if admin_active == item.key %}active{% endif %}"
+               href="{% url item.url_name table=item.url_kwargs.table %}">{{ item.label }}</a>
+          {% else %}
+            <a class="{% if admin_active == item.key %}active{% endif %}"
+               href="{% url item.url_name %}">{{ item.label }}</a>
+          {% endif %}
+        {% endfor %}
+      </nav>
+      <div class="admin-side-footer">
+        <a href="{% url 'public_listings' %}">Site home</a>
+      </div>
+    </aside>
+
+    <div class="admin-main">
+      {% ui_alerts %}
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+  <script src="{% static 'js/ui.js' %}" defer></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

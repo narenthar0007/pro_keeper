@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{% if mode == 'add' %}Add tenant{% else %}Edit tenant{% endif %} — PropKeep{% endblock %}
+
+{% block content %}
+{% url 'property_manage' property.pk as cancel_url %}
+{% if mode == 'add' %}
+{% ui_form form=form title="Add tenant" subtitle=property.title submit_label="Save tenant" cancel_href=cancel_url %}
+{% else %}
+{% ui_form form=form title="Edit tenant" subtitle=property.title submit_label="Save tenant" cancel_href=cancel_url %}
+{% endif %}
+{% endblock %}

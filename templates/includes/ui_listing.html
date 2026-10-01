@@ -1,0 +1,31 @@
+{% load ui %}
+<article
+  class="listing ui-listing{% if listing.is_photo %} listing--photo{% endif %} {{ listing.class_name }}"
+  {% if listing.id %}id="{{ listing.id }}"{% endif %}
+  {% if listing.image_url %}style="background-image: url('{{ listing.image_url }}');"{% endif %}
+>
+  {% if listing.href and listing.is_photo %}
+  <a class="listing-link" href="{{ listing.href }}">
+    <div class="listing-content">
+      {% for badge in listing.badges %}{% ui_badge badge %}{% endfor %}
+      <h2>{{ listing.title }}</h2>
+      {% if listing.meta %}<p class="meta">{{ listing.meta }}</p>{% endif %}
+      {% if listing.price %}<p class="price">{{ listing.price }}{% if listing.price_suffix %}<span>{{ listing.price_suffix }}</span>{% endif %}</p>{% endif %}
+      {% for line in listing.lines %}<p class="meta">{{ line }}</p>{% endfor %}
+    </div>
+  </a>
+  {% else %}
+    {% for badge in listing.badges %}{% ui_badge badge %}{% endfor %}
+    <h3 style="margin-top:0.65rem">
+      {% if listing.href %}<a href="{{ listing.href }}">{{ listing.title }}</a>{% else %}{{ listing.title }}{% endif %}
+    </h3>
+    {% if listing.meta %}<p class="meta">{{ listing.meta }}</p>{% endif %}
+    {% if listing.price %}<p class="price">{{ listing.price }}{% if listing.price_suffix %}<span>{{ listing.price_suffix }}</span>{% endif %}</p>{% endif %}
+    {% for line in listing.lines %}<p class="meta">{{ line }}</p>{% endfor %}
+    {% if listing.actions %}
+    <div class="actions">
+      {% for btn in listing.actions %}{% ui_button btn %}{% endfor %}
+    </div>
+    {% endif %}
+  {% endif %}
+</article>

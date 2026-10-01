@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Access denied — PropKeep{% endblock %}
+
+{% block content %}
+<article class="status-page">
+  <p class="status-code" aria-hidden="true">403</p>
+  {% ui_page_header title="Access denied" subtitle="You do not have permission to open this page." %}
+  {% ui_empty text="This screen is blocked for your login." %}
+  <div class="actions" style="margin-top:1rem">
+    {% ui_button label="Go home" href="/" variant="primary" %}
+    {% ui_button label="Sign in" href="/accounts/login/" variant="secondary" %}
+  </div>
+</article>
+{% endblock %}

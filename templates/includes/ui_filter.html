@@ -1,0 +1,16 @@
+<form
+  class="filters ui-filter {{ filter.class_name }}"
+  method="{{ filter.method }}"
+  {% if filter.action %}action="{{ filter.action }}"{% endif %}
+  {% if filter.id %}id="{{ filter.id }}"{% endif %}
+  aria-label="{{ filter.aria_label }}"
+>
+  {% for field in filter.fields %}
+    {% include "includes/ui_field.html" with field=field %}
+  {% endfor %}
+  {% if filter.show_submit %}
+  <div class="ui-filter-actions">
+    {% include "includes/ui_button.html" with button=filter.submit %}
+  </div>
+  {% endif %}
+</form>

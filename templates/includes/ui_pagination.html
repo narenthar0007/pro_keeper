@@ -1,0 +1,48 @@
+{% load ui %}
+{% if pagination.show %}
+<div class="table-pagination ui-pagination">
+  <p class="meta">
+    Showing {{ pagination.paging.object_list|length }} of {{ pagination.paging.total }} row{{ pagination.paging.total|pluralize }}
+    · {{ pagination.paging.page_size }} per page
+  </p>
+
+  {% if pagination.has_multiple_pages %}
+  <div class="actions pagination-nav">
+    {% if pagination.page.has_previous %}
+      <a class="btn btn-secondary btn-sm" href="?{% if pagination.filter_query %}{{ pagination.filter_query }}&{% endif %}page={{ pagination.page.previous_page_number }}">Previous</a>
+    {% else %}
+      {% ui_button label="Previous" variant="secondary" size="sm" disabled=True %}
+    {% endif %}
+
+    <span class="meta">Page {{ pagination.page.number }} of {{ pagination.page.paginator.num_pages }}</span>
+
+    {% if pagination.page.has_next %}
+      <a class="btn btn-secondary btn-sm" href="?{% if pagination.filter_query %}{{ pagination.filter_query }}&{% endif %}page={{ pagination.page.next_page_number }}">Next</a>
+    {% else %}
+      {% ui_button label="Next" variant="secondary" size="sm" disabled=True %}
+    {% endif %}
+  </div>
+
+  <div class="page-numbers">
+    {% for item in pagination.pages %}
+      {% if item.type == 'ellipsis' %}
+        <span class="meta">…</span>
+      {% elif item.active %}
+        <span class="page-num active">{{ item.num }}</span>
+      {% else %}
+        <a class="page-num" href="?{% if pagination.filter_query %}{{ pagination.filter_query }}&{% endif %}page={{ item.num }}">{{ item.num }}</a>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if pagination.paging.has_more %}
+  <div class="load-more-wrap">
+    <a class="btn btn-primary" href="?{% if pagination.filter_query %}{{ pagination.filter_query }}&{% endif %}thru={{ pagination.paging.next_thru }}">
+      Load more
+    </a>
+    <p class="meta">Load next {{ pagination.paging.page_size }} rows (keeps current rows on screen)</p>
+  </div>
+  {% endif %}
+</div>
+{% endif %}

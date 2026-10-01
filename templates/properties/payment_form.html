@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Record rent — PropKeep{% endblock %}
+
+{% block content %}
+{% url 'property_manage' property.pk as cancel_url %}
+{% ui_form form=form title="Record rent payment" subtitle=property.title submit_label="Save payment" cancel_href=cancel_url %}
+{% endblock %}

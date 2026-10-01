@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{{ building.name }} — PropKeep{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+{% ui_kpis kpis %}
+
+{% if building.amenities.all %}
+<p class="meta">Amenities: {% for a in building.amenities.all %}{{ a.label }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+{% endif %}
+
+<section class="panel">
+  <div class="section-head">
+    <h2>Units</h2>
+  </div>
+  {% ui_table units_table %}
+</section>
+
+<section class="panel">
+  <h2>Attach existing listing</h2>
+  {% if attachable %}
+  <form method="post" action="{% url 'building_unit_attach' building.pk %}" class="filters">
+    {% csrf_token %}
+    <p>
+      <label>Listing</label>
+      <select name="property_id" required>
+        {% for prop in attachable %}
+        <option value="{{ prop.pk }}">{{ prop.title }} — {{ prop.city }}</option>
+        {% endfor %}
+      </select>
+    </p>
+    <p>
+      <label>Unit number</label>
+      <input type="text" name="unit_number" placeholder="e.g. 12A">
+    </p>
+    <p>
+      <label>Floor</label>
+      <input type="number" name="floor_number" min="0">
+    </p>
+    <button class="btn btn-primary btn-sm" type="submit">Attach</button>
+  </form>
+  {% else %}
+  <p class="empty">No standalone listings left to attach.</p>
+  {% endif %}
+</section>
+{% endblock %}

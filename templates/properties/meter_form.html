@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Meter reading — PropKeep{% endblock %}
+
+{% block content %}
+{% url 'property_manage' property.pk as cancel_url %}
+{% ui_form form=form title="Meter reading" subtitle=property.title submit_label="Save" cancel_href=cancel_url %}
+{% endblock %}

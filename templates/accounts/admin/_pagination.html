@@ -1,0 +1,49 @@
+{% if paging.total %}
+<div class="table-pagination">
+  <p class="meta">
+    Showing {{ paging.object_list|length }} of {{ paging.total }} row{{ paging.total|pluralize }}
+    · {{ paging.page_size }} per page
+  </p>
+
+  {% if page.paginator.num_pages > 1 %}
+  <div class="actions pagination-nav">
+    {% if page.has_previous %}
+      <a class="btn btn-secondary btn-sm" href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page.previous_page_number }}">Previous</a>
+    {% else %}
+      <button class="btn btn-secondary btn-sm" type="button" disabled>Previous</button>
+    {% endif %}
+
+    <span class="meta">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+
+    {% if page.has_next %}
+      <a class="btn btn-secondary btn-sm" href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page.next_page_number }}">Next</a>
+    {% else %}
+      <button class="btn btn-secondary btn-sm" type="button" disabled>Next</button>
+    {% endif %}
+  </div>
+
+  <div class="page-numbers">
+    {% for num in page.paginator.page_range %}
+      {% if page.paginator.num_pages <= 9 or num == 1 or num == page.paginator.num_pages or num >= page.number|add:'-2' and num <= page.number|add:'2' %}
+        {% if num == page.number %}
+          <span class="page-num active">{{ num }}</span>
+        {% else %}
+          <a class="page-num" href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ num }}">{{ num }}</a>
+        {% endif %}
+      {% elif num == page.number|add:'-3' or num == page.number|add:'3' %}
+        <span class="meta">…</span>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if paging.has_more %}
+  <div class="load-more-wrap">
+    <a class="btn btn-primary" href="?{% if filter_query %}{{ filter_query }}&{% endif %}thru={{ paging.next_thru }}">
+      Load more
+    </a>
+    <p class="meta">Load next {{ paging.page_size }} rows (keeps current rows on screen)</p>
+  </div>
+  {% endif %}
+</div>
+{% endif %}

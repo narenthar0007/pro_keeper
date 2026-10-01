@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Update complaint — PropKeep{% endblock %}
+
+{% block content %}
+{% ui_form form=form title="Update complaint" subtitle=complaint_subtitle submit_label="Save" cancel_href=cancel_url %}
+{% endblock %}

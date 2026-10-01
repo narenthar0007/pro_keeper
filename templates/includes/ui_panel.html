@@ -1,0 +1,26 @@
+{% load ui %}
+<section class="panel ui-panel {{ panel.class_name }}" {% if panel.id %}id="{{ panel.id }}"{% endif %}>
+  {% if panel.title or panel.meta or panel.actions %}
+  <div class="section-head">
+    <div>
+      {% if panel.title %}
+        {% ui_heading text=panel.title level=2 tooltip=panel.tooltip %}
+      {% endif %}
+      {% if panel.meta %}<p class="meta">{{ panel.meta }}</p>{% endif %}
+    </div>
+    {% if panel.actions %}
+    <div class="actions" style="margin:0">
+      {% for btn in panel.actions %}
+        {% ui_button btn %}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if panel.body %}
+    {% if panel.body_html %}{{ panel.body|safe }}{% else %}<div class="ui-panel-body">{{ panel.body }}</div>{% endif %}
+  {% elif panel.empty %}
+    {% ui_empty panel.empty %}
+  {% endif %}
+</section>

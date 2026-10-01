@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Punch — HRMS{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+<section class="panel">
+  <form method="post" id="punch-form">
+    {% csrf_token %}
+    {% ui_form form=form submit_label="Submit punch" %}
+  </form>
+  {% if wa_link %}
+  <p style="margin-top:1rem">
+    <a class="btn btn-primary" href="{{ wa_link }}" target="_blank" rel="noopener">Open WhatsApp alert</a>
+  </p>
+  {% endif %}
+  <p class="meta">Tip: allow location — we fill lat/lng from your device when possible.</p>
+</section>
+<script>
+(function () {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(function (pos) {
+    var lat = document.querySelector('[name="latitude"]');
+    var lng = document.querySelector('[name="longitude"]');
+    if (lat && !lat.value) lat.value = pos.coords.latitude.toFixed(7);
+    if (lng && !lng.value) lng.value = pos.coords.longitude.toFixed(7);
+  });
+})();
+</script>
+{% endblock %}

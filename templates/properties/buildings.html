@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Buildings — PropKeep{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+{% ui_kpis kpis %}
+<section class="panel">
+  {% ui_table table %}
+</section>
+{% endblock %}

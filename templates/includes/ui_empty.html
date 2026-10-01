@@ -1,0 +1,8 @@
+<div class="empty ui-empty">
+  <p>{{ empty.text }}</p>
+  {% if empty.action %}
+    <div class="actions" style="margin-top:0.75rem">
+      {% include "includes/ui_button.html" with button=empty.action %}
+    </div>
+  {% endif %}
+</div>

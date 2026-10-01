@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{{ page_header.title }} — HRMS{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+{% if kpis %}{% ui_kpis kpis %}{% endif %}
+<section class="panel">
+  {% ui_table table %}
+</section>
+{% endblock %}

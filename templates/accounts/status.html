@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{{ page_title|default:status.title }} — PropKeep{% endblock %}
+
+{% block content %}
+<article class="status-page">
+  {% if status.code %}<p class="status-code" aria-hidden="true">{{ status.code }}</p>{% endif %}
+  {% ui_page_header status.header %}
+  {% ui_kpis status.kpis %}
+  {% if status.alert %}
+  <ul class="messages ui-alerts">{% ui_alert status.alert %}</ul>
+  {% endif %}
+  {% ui_empty status.empty %}
+  {% if status.actions %}
+  <div class="actions" style="margin-top:1rem">
+    {% for btn in status.actions %}{% ui_button btn %}{% endfor %}
+  </div>
+  {% endif %}
+</article>
+{% endblock %}
