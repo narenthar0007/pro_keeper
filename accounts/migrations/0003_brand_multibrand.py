@@ -63,6 +63,29 @@ def migrate_brands(apps, schema_editor):
         )
 
 
+def apply_brand_slug_unique(apps, schema_editor):
+    if schema_editor.connection.vendor == 'postgresql':
+        schema_editor.execute(
+            'CREATE UNIQUE INDEX IF NOT EXISTS accounts_brand_slug_key '
+            'ON accounts_brand (slug)'
+        )
+        schema_editor.execute(
+            'CREATE INDEX IF NOT EXISTS accounts_brand_slug_21841905_like '
+            'ON accounts_brand (slug varchar_pattern_ops)'
+        )
+    else:
+        schema_editor.execute(
+            'CREATE UNIQUE INDEX IF NOT EXISTS accounts_brand_slug_key '
+            'ON accounts_brand (slug)'
+        )
+
+
+def reverse_brand_slug_unique(apps, schema_editor):
+    if schema_editor.connection.vendor == 'postgresql':
+        schema_editor.execute('DROP INDEX IF EXISTS accounts_brand_slug_21841905_like')
+    schema_editor.execute('DROP INDEX IF EXISTS accounts_brand_slug_key')
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ('accounts', '0002_sitetheme_roleprivilege_userprofile'),
@@ -168,17 +191,9 @@ class Migration(migrations.Migration):
                 ),
             ],
             database_operations=[
-                migrations.RunSQL(
-                    sql=(
-                        'CREATE UNIQUE INDEX IF NOT EXISTS accounts_brand_slug_key '
-                        'ON accounts_brand (slug); '
-                        'CREATE INDEX IF NOT EXISTS accounts_brand_slug_21841905_like '
-                        'ON accounts_brand (slug varchar_pattern_ops);'
-                    ),
-                    reverse_sql=(
-                        'DROP INDEX IF EXISTS accounts_brand_slug_21841905_like; '
-                        'DROP INDEX IF EXISTS accounts_brand_slug_key;'
-                    ),
+                migrations.RunPython(
+                    apply_brand_slug_unique,
+                    reverse_brand_slug_unique,
                 ),
             ],
         ),
