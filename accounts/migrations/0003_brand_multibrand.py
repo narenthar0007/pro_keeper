@@ -77,7 +77,9 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='brand',
             name='slug',
-            field=models.SlugField(default='propkeep', max_length=80, unique=False),
+            # CharField first: SlugField on Postgres can create a _like index
+            # before we add the unique constraint (duplicate index error).
+            field=models.CharField(default='propkeep', max_length=80),
             preserve_default=False,
         ),
         migrations.AddField(
@@ -167,16 +169,16 @@ class Migration(migrations.Migration):
             ],
             database_operations=[
                 migrations.RunSQL(
-                    sql=[
+                    sql=(
                         'CREATE UNIQUE INDEX IF NOT EXISTS accounts_brand_slug_key '
-                        'ON accounts_brand (slug);',
+                        'ON accounts_brand (slug); '
                         'CREATE INDEX IF NOT EXISTS accounts_brand_slug_21841905_like '
-                        'ON accounts_brand (slug varchar_pattern_ops);',
-                    ],
-                    reverse_sql=[
-                        'DROP INDEX IF EXISTS accounts_brand_slug_21841905_like;',
-                        'DROP INDEX IF EXISTS accounts_brand_slug_key;',
-                    ],
+                        'ON accounts_brand (slug varchar_pattern_ops);'
+                    ),
+                    reverse_sql=(
+                        'DROP INDEX IF EXISTS accounts_brand_slug_21841905_like; '
+                        'DROP INDEX IF EXISTS accounts_brand_slug_key;'
+                    ),
                 ),
             ],
         ),
