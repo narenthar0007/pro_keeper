@@ -34,7 +34,10 @@ DEFAULT_AMENITIES = [
     ('gym', 'Gym'),
     ('cctv', 'CCTV'),
     ('ac', 'Air conditioning'),
+    ('others', 'Others'),
 ]
+
+OTHERS_AMENITY_CODE = 'others'
 
 
 def ensure_default_amenities():

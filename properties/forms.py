@@ -3,10 +3,14 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.text import slugify
 
+from django.db.models import Case, IntegerField, When
+
 from .models import (
     Amenity,
     Building,
     CampaignCollaborator,
+    OTHERS_AMENITY_CODE,
+    ensure_default_amenities,
     Complaint,
     Document,
     Enquiry,
@@ -28,7 +32,7 @@ def get_or_create_custom_amenity(label):
     label = (label or '').strip()
     if not label:
         return None
-    existing = Amenity.objects.filter(label__iexact=label).first()
+    existing = Amenity.objects.filter(label__iexact=label).exclude(code=OTHERS_AMENITY_CODE).first()
     if existing:
         return existing
     base = slugify(label)[:40] or 'custom'
@@ -51,8 +55,8 @@ class PropertyForm(forms.ModelForm):
     other_amenity = forms.CharField(
         required=False,
         max_length=80,
-        label='Others',
-        help_text='Type a custom amenity if it is not in the list.',
+        label='Specify other amenity',
+        widget=forms.TextInput(attrs={'placeholder': 'Type the amenity name'}),
     )
 
     class Meta:
@@ -128,11 +132,21 @@ class PropertyForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self._form_user = user
         self._form_brand = brand
+        ensure_default_amenities()
         self.fields['building'].required = False
         self.fields['amenities'].required = False
-        self.fields['amenities'].queryset = Amenity.objects.all().order_by('label')
+        self.fields['amenities'].queryset = Amenity.objects.annotate(
+            others_last=Case(
+                When(code=OTHERS_AMENITY_CODE, then=1),
+                default=0,
+                output_field=IntegerField(),
+            )
+        ).order_by('others_last', 'label')
         self.fields['amenities'].widget = forms.CheckboxSelectMultiple()
-        self.fields['amenities'].help_text = 'Select every amenity that applies.'
+        self.fields['amenities'].help_text = 'Select every amenity that applies. Choose Others to type a custom one.'
+        self.others_amenity_id = Amenity.objects.filter(code=OTHERS_AMENITY_CODE).values_list(
+            'pk', flat=True
+        ).first()
         if user is not None and brand is not None:
             self.fields['building'].queryset = Building.for_user(user, brand=brand).order_by('name')
         else:
@@ -156,6 +170,16 @@ class PropertyForm(forms.ModelForm):
     def clean(self):
         cleaned = super().clean()
         listing_type = cleaned.get('listing_type')
+        others = Amenity.objects.filter(code=OTHERS_AMENITY_CODE).first()
+        selected = list(cleaned.get('amenities') or [])
+        others_selected = bool(others and others in selected)
+        if others_selected:
+            cleaned['amenities'] = [item for item in selected if item.code != OTHERS_AMENITY_CODE]
+            if not (cleaned.get('other_amenity') or '').strip():
+                self.add_error('other_amenity', 'Type the custom amenity name.')
+        else:
+            cleaned['other_amenity'] = ''
+
         if listing_type == 'rent':
             if not cleaned.get('monthly_rent'):
                 self.add_error('monthly_rent', 'Monthly rent is required for rent listings.')

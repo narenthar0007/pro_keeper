@@ -465,7 +465,8 @@ class PropertyOpsTests(TestCase):
 
         ensure_default_amenities()
         self.client.login(username='ops_owner', password='pass12345')
-        amenity = Amenity.objects.first()
+        amenity = Amenity.objects.exclude(code='others').first()
+        others = Amenity.objects.get(code='others')
         response = self.client.post(
             reverse('property_create'),
             {
@@ -484,7 +485,7 @@ class PropertyOpsTests(TestCase):
                 'furnishing': 'unfurnished',
                 'sale_status': 'available',
                 'advance_amount': '0',
-                'amenities': [str(amenity.pk)],
+                'amenities': [str(amenity.pk), str(others.pk)],
                 'other_amenity': 'Servant room',
             },
         )
@@ -494,6 +495,7 @@ class PropertyOpsTests(TestCase):
         self.assertEqual(prop.kitchens, 1)
         labels = set(prop.amenities.values_list('label', flat=True))
         self.assertIn('Servant room', labels)
+        self.assertNotIn('Others', labels)
 
     def test_create_tenant_login_and_rent_reminder(self):
         prop = Property.objects.create(

@@ -238,15 +238,15 @@
         </div>
         <div class="form-field full">
           <label>Amenities</label>
-          <p class="meta">Select all that apply. Use Others for a custom value.</p>
+          <p class="meta">Select all that apply. Tick Others to type a custom amenity.</p>
           {{ form.amenities.errors }}
           <div class="amenity-checks">
             {% for check in form.amenities %}
-            <label class="checkbox-row">{{ check.tag }} {{ check.choice_label }}</label>
+            <label class="checkbox-row amenity-option">{{ check.tag }} {{ check.choice_label }}</label>
             {% endfor %}
           </div>
-          <div class="form-field" style="margin-top:0.75rem">
-            <label for="{{ form.other_amenity.id_for_label }}">Others (custom)</label>
+          <div class="form-field" id="other-amenity-wrap" style="margin-top:0.75rem;display:none">
+            <label for="{{ form.other_amenity.id_for_label }}">{{ form.other_amenity.label }}</label>
             {{ form.other_amenity }}
             {{ form.other_amenity.errors }}
           </div>
@@ -281,6 +281,26 @@
   if (typeField) {
     typeField.addEventListener('change', toggle);
     toggle();
+  }
+
+  const othersId = '{{ form.others_amenity_id }}';
+  const otherWrap = document.getElementById('other-amenity-wrap');
+  const otherInput = document.getElementById('{{ form.other_amenity.id_for_label }}');
+  function othersBox() {
+    if (!othersId) return null;
+    return document.querySelector('#id_amenities input[value="' + othersId + '"]')
+      || document.querySelector('input[name="amenities"][value="' + othersId + '"]');
+  }
+  function toggleOthers() {
+    const box = othersBox();
+    const show = !!(box && box.checked);
+    if (otherWrap) otherWrap.style.display = show ? '' : 'none';
+    if (!show && otherInput) otherInput.value = '';
+  }
+  const box = othersBox();
+  if (box) {
+    box.addEventListener('change', toggleOthers);
+    toggleOthers();
   }
 })();
 </script>

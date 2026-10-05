@@ -223,7 +223,10 @@ def public_listings(request):
                 'label': 'Amenity',
                 'type': 'select',
                 'value': amenity,
-                'choices': [('', 'Any')] + [(a.code, a.label) for a in Amenity.objects.all().order_by('label')],
+                'choices': [('', 'Any')] + [
+                    (a.code, a.label)
+                    for a in Amenity.objects.exclude(code='others').order_by('label')
+                ],
             },
             {
                 'name': 'sort',
