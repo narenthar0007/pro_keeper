@@ -287,7 +287,7 @@ def building_unit_add(request, pk):
         'year_of_building': building.year_of_building,
     }
     if request.method == 'POST':
-        form = PropertyForm(request.POST, user=request.user, brand=brand)
+        form = PropertyForm(request.POST, request.FILES, user=request.user, brand=brand)
         if form.is_valid():
             prop = form.save(commit=False)
             prop.owner = request.user
@@ -299,6 +299,7 @@ def building_unit_add(request, pk):
                 prop.city = building.city
             prop.save()
             form.save_m2m()
+            form._save_other_amenity(prop)
             messages.success(request, 'Unit added to building.')
             return redirect('building_detail', pk=building.pk)
     else:
@@ -573,6 +574,14 @@ def tenant_list(request):
                 'advance': f'₹{tenant.advance_balance:,.0f}',
                 'rent': rent_status,
                 'active': 'Active' if tenant.is_active else 'Past',
+                'actions': mark_safe(
+                    f'<a class="btn btn-secondary btn-sm" href="{reverse("tenant_edit", args=[tenant.property_id, tenant.pk])}">Edit</a> '
+                    + (
+                        f'<a class="btn btn-primary btn-sm" href="{reverse("tenant_create_login", args=[tenant.property_id, tenant.pk])}">Create login</a>'
+                        if not tenant.user_id
+                        else f'<span class="meta">{tenant.user.username}</span>'
+                    )
+                ),
             }
         )
     return render(
@@ -581,7 +590,7 @@ def tenant_list(request):
         {
             'page_header': build_page_header(
                 'Tenants',
-                subtitle='All tenants across your units this brand.',
+                subtitle='All tenants across your units this brand. Create login details here if the tenant is not in the system yet.',
             ),
             'table': build_table(
                 id='tenants',
@@ -593,6 +602,7 @@ def tenant_list(request):
                     {'key': 'advance', 'label': 'Advance'},
                     {'key': 'rent', 'label': 'This month'},
                     {'key': 'active', 'label': 'Status', 'badge': True},
+                    {'key': 'actions', 'label': '', 'html': True, 'width': '220px'},
                 ],
                 rows=rows,
                 empty_text='No tenants yet.',

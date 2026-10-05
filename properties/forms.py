@@ -1,5 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
+from django.utils import timezone
+from django.utils.text import slugify
 
 from .models import (
     Amenity,
@@ -22,7 +24,37 @@ from .models import (
 )
 
 
+def get_or_create_custom_amenity(label):
+    label = (label or '').strip()
+    if not label:
+        return None
+    existing = Amenity.objects.filter(label__iexact=label).first()
+    if existing:
+        return existing
+    base = slugify(label)[:40] or 'custom'
+    code = base
+    n = 2
+    while Amenity.objects.filter(code=code).exists():
+        suffix = f'-{n}'
+        code = f'{base[: 40 - len(suffix)]}{suffix}'
+        n += 1
+    return Amenity.objects.create(code=code, label=label[:80])
+
+
 class PropertyForm(forms.ModelForm):
+    new_building_name = forms.CharField(
+        required=False,
+        max_length=200,
+        label='Or type a building name',
+        help_text='Type an existing building name to reuse it for another shop or home.',
+    )
+    other_amenity = forms.CharField(
+        required=False,
+        max_length=80,
+        label='Others',
+        help_text='Type a custom amenity if it is not in the list.',
+    )
+
     class Meta:
         model = Property
         fields = [
@@ -43,6 +75,8 @@ class PropertyForm(forms.ModelForm):
             'property_type',
             'bedrooms',
             'bathrooms',
+            'rooms',
+            'kitchens',
             'area_sqft',
             'year_of_building',
             'monthly_rent',
@@ -85,19 +119,39 @@ class PropertyForm(forms.ModelForm):
             'sale_price': forms.NumberInput(attrs={'placeholder': 'Sale price', 'class': 'sale-field'}),
             'possession_date': forms.DateInput(attrs={'type': 'date', 'class': 'sale-field'}),
             'late_fee_grace_days': forms.NumberInput(attrs={'min': 0}),
+            'rooms': forms.NumberInput(attrs={'min': 0}),
+            'kitchens': forms.NumberInput(attrs={'min': 0}),
+            'amenities': forms.CheckboxSelectMultiple(),
         }
 
     def __init__(self, *args, user=None, brand=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self._form_user = user
+        self._form_brand = brand
         self.fields['building'].required = False
         self.fields['amenities'].required = False
         self.fields['amenities'].queryset = Amenity.objects.all().order_by('label')
+        self.fields['amenities'].widget = forms.CheckboxSelectMultiple()
+        self.fields['amenities'].help_text = 'Select every amenity that applies.'
         if user is not None and brand is not None:
             self.fields['building'].queryset = Building.for_user(user, brand=brand).order_by('name')
         else:
             self.fields['building'].queryset = Building.objects.none()
-        self.fields['building'].help_text = 'Optional. Attach this listing to a building as a unit.'
-        self.fields['unit_number'].help_text = 'Room / flat number. Copied from door number if left blank.'
+        self.fields['building'].empty_label = 'No building / standalone'
+        self.fields['advance_amount'].required = False
+        self.fields['late_fee_amount'].required = False
+        self.fields['late_fee_grace_days'].required = False
+        self.fields['rooms'].required = False
+        self.fields['kitchens'].required = False
+        self.fields['bedrooms'].required = False
+        self.fields['bathrooms'].required = False
+        self.fields['building'].help_text = (
+            'You can pick the same building for every shop or home in it. '
+            'Give each unit a unique unit or door number.'
+        )
+        self.fields['unit_number'].help_text = (
+            'Unique shop / flat / room number in this building. Copied from door number if left blank.'
+        )
 
     def clean(self):
         cleaned = super().clean()
@@ -109,7 +163,73 @@ class PropertyForm(forms.ModelForm):
             if not cleaned.get('sale_price'):
                 self.add_error('sale_price', 'Sale price is required for sale listings.')
             cleaned['is_occupied'] = False
+
+        building = cleaned.get('building')
+        new_name = (cleaned.get('new_building_name') or '').strip()
+        user = self._form_user
+        brand = self._form_brand
+        if new_name and user is not None and brand is not None:
+            existing = Building.objects.filter(
+                owner=user, brand=brand, name__iexact=new_name
+            ).first()
+            if existing:
+                building = existing
+                cleaned['building'] = existing
+            elif not building:
+                building = Building(
+                    owner=user,
+                    brand=brand,
+                    name=new_name,
+                    address=cleaned.get('address') or new_name,
+                    city=cleaned.get('city') or '',
+                    state=cleaned.get('state') or '',
+                    pincode=cleaned.get('pincode') or '',
+                    country=cleaned.get('country') or 'India',
+                    street=cleaned.get('street') or '',
+                    landmark=cleaned.get('landmark') or '',
+                    latitude=cleaned.get('latitude'),
+                    longitude=cleaned.get('longitude'),
+                    year_of_building=cleaned.get('year_of_building'),
+                )
+                cleaned['_new_building'] = building
+                cleaned['building'] = building
+
+        unit = (cleaned.get('unit_number') or cleaned.get('door_number') or '').strip()
+        if building and not unit:
+            count = 1
+            if getattr(building, 'pk', None):
+                count = building.units.count() + 1
+            unit = f'U{count}'
+            cleaned['unit_number'] = unit
+        elif unit:
+            cleaned['unit_number'] = unit
+
+        if building and getattr(building, 'pk', None) and unit:
+            clash = Property.objects.filter(building=building, unit_number=unit)
+            if self.instance.pk:
+                clash = clash.exclude(pk=self.instance.pk)
+            if clash.exists():
+                self.add_error(
+                    'unit_number',
+                    'That unit number is already used in this building. Use a different shop or flat number.',
+                )
         return cleaned
+
+    def save(self, commit=True):
+        new_building = self.cleaned_data.pop('_new_building', None)
+        if new_building is not None and new_building.pk is None:
+            new_building.save()
+            self.cleaned_data['building'] = new_building
+            self.instance.building = new_building
+        instance = super().save(commit=commit)
+        if commit:
+            self._save_other_amenity(instance)
+        return instance
+
+    def _save_other_amenity(self, instance):
+        extra = get_or_create_custom_amenity(self.cleaned_data.get('other_amenity'))
+        if extra:
+            instance.amenities.add(extra)
 
 
 class MarketingCampaignForm(forms.ModelForm):
@@ -192,13 +312,35 @@ class CampaignCollaboratorInviteForm(forms.Form):
 
 
 class TenantForm(forms.ModelForm):
+    existing_username = forms.CharField(
+        required=False,
+        max_length=150,
+        label='Existing login username',
+        help_text='If this tenant already has an account, type their username to attach them.',
+    )
+    create_username = forms.CharField(
+        required=False,
+        max_length=150,
+        label='New login username',
+        help_text='Create portal login for a tenant who is not in the system yet.',
+    )
+    create_password = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput,
+        label='New login password',
+    )
+    create_password2 = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput,
+        label='Confirm password',
+    )
+
     class Meta:
         model = Tenant
         fields = [
             'name',
             'phone',
             'email',
-            'user',
             'move_in_date',
             'lease_end_date',
             'advance_paid',
@@ -217,9 +359,130 @@ class TenantForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['user'].queryset = User.objects.order_by('username')
-        self.fields['user'].required = False
-        self.fields['user'].help_text = 'Optional: link a registered user for tenant portal access'
+        if self.instance and self.instance.user_id:
+            self.fields['existing_username'].initial = self.instance.user.username
+            self.fields['existing_username'].help_text = (
+                f'Currently linked to {self.instance.user.username}. Leave as-is or change.'
+            )
+
+    def clean_existing_username(self):
+        username = (self.cleaned_data.get('existing_username') or '').strip()
+        if not username:
+            return ''
+        try:
+            return User.objects.get(username=username)
+        except User.DoesNotExist as exc:
+            raise forms.ValidationError('No user with that username.') from exc
+
+    def clean(self):
+        cleaned = super().clean()
+        create_username = (cleaned.get('create_username') or '').strip()
+        password = cleaned.get('create_password') or ''
+        password2 = cleaned.get('create_password2') or ''
+        existing = cleaned.get('existing_username')
+        if create_username and existing:
+            self.add_error('create_username', 'Attach an existing user or create a new login, not both.')
+        if create_username:
+            if User.objects.filter(username=create_username).exists():
+                self.add_error(
+                    'create_username',
+                    'Username already exists. Attach them with existing username instead.',
+                )
+            if not password:
+                self.add_error('create_password', 'Password is required to create a login.')
+            elif password != password2:
+                self.add_error('create_password2', 'Passwords do not match.')
+        elif password or password2:
+            self.add_error('create_username', 'Enter a username to create login details.')
+        return cleaned
+
+
+class TenantLoginForm(forms.Form):
+    username = forms.CharField(max_length=150)
+    password = forms.CharField(widget=forms.PasswordInput)
+    confirm_password = forms.CharField(widget=forms.PasswordInput)
+
+    def clean_username(self):
+        username = self.cleaned_data['username']
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError('Username already exists.')
+        return username
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get('password') != cleaned.get('confirm_password'):
+            self.add_error('confirm_password', 'Passwords do not match.')
+        return cleaned
+
+
+class PlannedVacateForm(forms.Form):
+    planned_vacate_date = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        label='Vacate date',
+        help_text='Pick a future date when this tenant will leave.',
+    )
+
+    def clean_planned_vacate_date(self):
+        value = self.cleaned_data['planned_vacate_date']
+        if value <= timezone.localdate():
+            raise forms.ValidationError('Choose a future date.')
+        return value
+
+
+class JoinRequestForm(forms.Form):
+    message = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 3, 'placeholder': 'Optional message to the owner'}),
+    )
+
+
+class AdminBroadcastForm(forms.Form):
+    AUDIENCE_CHOICES = [
+        ('all', 'All users'),
+        ('owners', 'Owners'),
+        ('tenants', 'Tenants'),
+        ('selected', 'Selected users'),
+    ]
+    audience = forms.ChoiceField(choices=AUDIENCE_CHOICES, initial='all')
+    users = forms.ModelMultipleChoiceField(
+        queryset=User.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        label='Selected users',
+    )
+    title = forms.CharField(max_length=200, initial='Message from admin')
+    body = forms.CharField(widget=forms.Textarea(attrs={'rows': 4}))
+
+    def __init__(self, *args, users=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['users'].queryset = users if users is not None else User.objects.none()
+        self.fields['users'].help_text = 'Used when audience is Selected users. Hold Ctrl to pick more than one.'
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get('audience') == 'selected' and not cleaned.get('users'):
+            self.add_error('users', 'Select at least one user.')
+        return cleaned
+
+
+class RentReminderForm(forms.Form):
+    tenants = forms.ModelMultipleChoiceField(
+        queryset=Tenant.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+        label='Tenants',
+    )
+    message = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 4}),
+        initial='This is a reminder to pay this month’s rent. Please check your tenant portal.',
+    )
+
+    def __init__(self, *args, tenants=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['tenants'].queryset = tenants if tenants is not None else Tenant.objects.none()
+        self.fields['tenants'].label_from_instance = (
+            lambda t: f'{t.name} · {t.property.title}'
+            + (f' (@{t.user.username})' if t.user_id else ' (no login)')
+        )
 
 
 class RentPaymentForm(forms.ModelForm):
@@ -330,12 +593,14 @@ class BuildingForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={'rows': 2}),
             'latitude': forms.NumberInput(attrs={'step': '0.000001'}),
             'longitude': forms.NumberInput(attrs={'step': '0.000001'}),
+            'amenities': forms.CheckboxSelectMultiple(),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['amenities'].required = False
         self.fields['amenities'].queryset = Amenity.objects.all().order_by('label')
+        self.fields['amenities'].widget = forms.CheckboxSelectMultiple()
 
 
 class AttachUnitForm(forms.Form):
@@ -437,4 +702,3 @@ class MeterReadingForm(forms.ModelForm):
 
 class MessageForm(forms.Form):
     body = forms.CharField(widget=forms.Textarea(attrs={'rows': 3, 'placeholder': 'Write a message…'}))
-

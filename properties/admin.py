@@ -184,8 +184,8 @@ class PropertyAdmin(UnfoldModelAdmin):
             {
                 'classes': ('collapse',),
                 'fields': (
-                    'bedrooms', 'bathrooms', 'area_sqft', 'year_of_building',
-                    'possession_date', 'amenities', 'late_fee_amount', 'late_fee_grace_days',
+                    'bedrooms', 'bathrooms', 'rooms', 'kitchens', 'area_sqft', 'year_of_building',
+                    'possession_date', 'amenities', 'planned_vacate_date', 'late_fee_amount', 'late_fee_grace_days',
                 ),
             },
         ),

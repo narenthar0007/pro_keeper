@@ -211,6 +211,8 @@ class Property(models.Model):
     property_type = models.CharField(max_length=20, choices=PROPERTY_TYPES, default='apartment')
     bedrooms = models.PositiveIntegerField(default=1)
     bathrooms = models.PositiveIntegerField(default=1)
+    rooms = models.PositiveIntegerField(default=1, help_text='Total number of rooms')
+    kitchens = models.PositiveIntegerField(default=1)
     area_sqft = models.PositiveIntegerField(null=True, blank=True, help_text='Area in square feet')
     listing_type = models.CharField(
         max_length=10,
@@ -261,6 +263,11 @@ class Property(models.Model):
         help_text='Show this property on the public listings page',
     )
     is_occupied = models.BooleanField(default=False)
+    planned_vacate_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text='Future date when the current tenant will vacate',
+    )
     amenities = models.ManyToManyField(Amenity, blank=True, related_name='properties')
     late_fee_amount = models.DecimalField(
         max_digits=12,
@@ -485,6 +492,43 @@ class Tenant(models.Model):
     @builtins.property
     def advance_balance(self):
         return self.advance_paid - self.advance_deduction - self.advance_refunded
+
+
+class TenantJoinRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+    ]
+
+    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='join_requests')
+    brand = models.ForeignKey(
+        'accounts.Brand',
+        on_delete=models.PROTECT,
+        related_name='tenant_join_requests',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='property_join_requests',
+    )
+    message = models.TextField(blank=True, default='')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['property', 'user'],
+                condition=Q(status='pending'),
+                name='uniq_pending_join_request',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.user} → {self.property} ({self.status})'
 
 
 class RentPayment(models.Model):
@@ -1343,6 +1387,9 @@ class UserNotification(models.Model):
         ('campaign_task', 'Campaign task'),
         ('lease_expiry', 'Lease expiry'),
         ('message', 'Message'),
+        ('join_request', 'Join request'),
+        ('admin_message', 'Admin message'),
+        ('rent_reminder', 'Rent reminder'),
     ]
 
     brand = models.ForeignKey(

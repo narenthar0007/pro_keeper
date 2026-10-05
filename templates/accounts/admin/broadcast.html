@@ -1,0 +1,10 @@
+{% extends "accounts/admin/base_admin.html" %}
+{% load ui %}
+
+{% block title %}Message users — PropKeep{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+{% url 'staff_dashboard' as cancel_url %}
+{% ui_form form=form title="" submit_label="Send message" cancel_href=cancel_url %}
+{% endblock %}

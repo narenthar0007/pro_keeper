@@ -74,14 +74,14 @@ python manage.py createsuperuser
 1. Top menu → **Web**
 2. **Add a new web app**
 3. **Manual configuration** (not Django wizard — we already have the project)
-4. **Python 3.10** (or 3.11 if that’s what you used in the venv)
+4. **Python 3.12** (or 3.11 if 3.12 is unavailable on your account — then use 3.12 venv from Bash as above)
 
 On the **Web** tab for your site:
 
 | Setting | Value |
 |--------|--------|
-| **Virtualenv** | `/home/YOURUSERNAME/.virtualenvs/prokeeper` |
-| **Code** | `/home/YOURUSERNAME/pro_keeper` |
+| **Virtualenv** | `/home/Narenthar/.virtualenvs/prokeeper` (use your exact username; yours is likely `Narenthar`) |
+| **Code** | `/home/Narenthar/pro_keeper` |
 
 Click the **WSGI configuration file** link (opens `/var/www/..._wsgi.py`).
 
@@ -126,7 +126,7 @@ In a **Bash** console:
 cd ~/pro_keeper
 workon prokeeper
 git pull origin main
-pip install -r requirements.txt
+pip install -r requirements-pythonanywhere.txt
 python manage.py migrate
 python manage.py collectstatic --no-input
 ```

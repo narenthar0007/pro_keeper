@@ -415,3 +415,142 @@ class BuildingAndLeadTests(TestCase):
         self.assertContains(reports, 'Income report')
         self.assertContains(reports, 'GST invoices')
 
+
+class PropertyOpsTests(TestCase):
+    def setUp(self):
+        ensure_default_brands()
+        ensure_default_privileges()
+        self.brand = Brand.objects.get(slug='propkeep')
+        self.owner = User.objects.create_user('ops_owner', 'ops@example.com', 'pass12345')
+        self.owner.profile.brand = self.brand
+        self.owner.profile.save(update_fields=['brand'])
+        self.client = Client()
+        self.building = Building.objects.create(
+            owner=self.owner,
+            brand=self.brand,
+            name='Plaza One',
+            address='1 Plaza',
+            city='Chennai',
+        )
+
+    def test_reuse_building_for_second_property(self):
+        self.client.login(username='ops_owner', password='pass12345')
+        payload = {
+            'title': 'Shop 1',
+            'address': '1 Plaza',
+            'city': 'Chennai',
+            'listing_type': 'rent',
+            'property_type': 'commercial',
+            'monthly_rent': '10000',
+            'bedrooms': '1',
+            'bathrooms': '1',
+            'rooms': '2',
+            'kitchens': '0',
+            'building': str(self.building.pk),
+            'unit_number': 'S1',
+            'furnishing': 'unfurnished',
+            'sale_status': 'available',
+            'advance_amount': '0',
+        }
+        first = self.client.post(reverse('property_create'), payload)
+        self.assertEqual(first.status_code, 302)
+        payload['title'] = 'Shop 2'
+        payload['unit_number'] = 'S2'
+        second = self.client.post(reverse('property_create'), payload)
+        self.assertEqual(second.status_code, 302)
+        self.assertEqual(Property.objects.filter(building=self.building).count(), 2)
+
+    def test_custom_amenity_and_rooms(self):
+        from .models import Amenity, ensure_default_amenities
+
+        ensure_default_amenities()
+        self.client.login(username='ops_owner', password='pass12345')
+        amenity = Amenity.objects.first()
+        response = self.client.post(
+            reverse('property_create'),
+            {
+                'title': 'Home A',
+                'address': '2 Plaza',
+                'city': 'Chennai',
+                'listing_type': 'rent',
+                'property_type': 'apartment',
+                'monthly_rent': '12000',
+                'bedrooms': '2',
+                'bathrooms': '1',
+                'rooms': '3',
+                'kitchens': '1',
+                'building': str(self.building.pk),
+                'unit_number': 'H1',
+                'furnishing': 'unfurnished',
+                'sale_status': 'available',
+                'advance_amount': '0',
+                'amenities': [str(amenity.pk)],
+                'other_amenity': 'Servant room',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        prop = Property.objects.get(title='Home A')
+        self.assertEqual(prop.rooms, 3)
+        self.assertEqual(prop.kitchens, 1)
+        labels = set(prop.amenities.values_list('label', flat=True))
+        self.assertIn('Servant room', labels)
+
+    def test_create_tenant_login_and_rent_reminder(self):
+        prop = Property.objects.create(
+            owner=self.owner,
+            brand=self.brand,
+            title='Remind Flat',
+            address='3 St',
+            city='Chennai',
+            listing_type='rent',
+            monthly_rent=10000,
+            building=self.building,
+            unit_number='R1',
+        )
+        tenant = Tenant.objects.create(property=prop, name='Kiran', is_active=True)
+        self.client.login(username='ops_owner', password='pass12345')
+        response = self.client.post(
+            reverse('tenant_create_login', args=[prop.pk, tenant.pk]),
+            {'username': 'kiran_login', 'password': 'secret12345', 'confirm_password': 'secret12345'},
+        )
+        self.assertEqual(response.status_code, 302)
+        tenant.refresh_from_db()
+        self.assertEqual(tenant.user.username, 'kiran_login')
+        from .models import UserNotification
+
+        remind = self.client.post(
+            reverse('rent_reminder_send'),
+            {'tenants': [str(tenant.pk)], 'message': 'Please pay rent this month.'},
+        )
+        self.assertEqual(remind.status_code, 302)
+        self.assertTrue(
+            UserNotification.objects.filter(user=tenant.user, kind='rent_reminder').exists()
+        )
+
+    def test_planned_vacate_date(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        prop = Property.objects.create(
+            owner=self.owner,
+            brand=self.brand,
+            title='Vacate Flat',
+            address='4 St',
+            city='Chennai',
+            listing_type='rent',
+            monthly_rent=9000,
+            is_occupied=True,
+            building=self.building,
+            unit_number='V1',
+        )
+        self.client.login(username='ops_owner', password='pass12345')
+        future = timezone.localdate() + timedelta(days=20)
+        response = self.client.post(
+            reverse('property_vacate', args=[prop.pk]),
+            {'planned_vacate_date': future.isoformat()},
+        )
+        self.assertEqual(response.status_code, 302)
+        prop.refresh_from_db()
+        self.assertEqual(prop.planned_vacate_date, future)
+

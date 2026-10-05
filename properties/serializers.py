@@ -21,6 +21,8 @@ class PropertySerializer(serializers.ModelSerializer):
             'property_type',
             'bedrooms',
             'bathrooms',
+            'rooms',
+            'kitchens',
             'area_sqft',
             'monthly_rent',
             'sale_price',

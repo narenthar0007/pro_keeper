@@ -24,12 +24,16 @@ from .forms import (
     ComplaintOwnerForm,
     EnquiryForm,
     ExpenseForm,
+    JoinRequestForm,
     MarketingCampaignForm,
+    PlannedVacateForm,
     PropertyForm,
     PropertyImageForm,
     PropertyShareForm,
     RentPaymentForm,
+    RentReminderForm,
     TenantForm,
+    TenantLoginForm,
 )
 from .marketing_permissions import (
     active_site_promotions,
@@ -58,10 +62,12 @@ from .models import (
     RentPayment,
     SitePromotion,
     Tenant,
+    TenantJoinRequest,
     income_expense_for_month,
     month_start,
     properties_missing_rent_for_month,
 )
+from .tenant_access import apply_tenant_login_fields, create_login_for_tenant
 
 
 def _manageable_property(request, pk):
@@ -311,6 +317,8 @@ def public_property_detail(request, pk):
         is_listed_publicly=True,
         brand=brand,
     )
+    if request.method == 'POST' and request.POST.get('form_name') == 'join_request':
+        return _handle_join_request(request, prop)
     if request.method == 'POST':
         form = EnquiryForm(request.POST)
         if form.is_valid():
@@ -361,6 +369,8 @@ def public_property_detail(request, pk):
             )
         )
 
+    join_ctx = _join_request_context(request, prop)
+
     return render(
         request,
         'properties/public_detail.html',
@@ -369,8 +379,74 @@ def public_property_detail(request, pk):
             'enquiry_form': form,
             'is_saved': is_saved,
             'amenity_labels': amenity_labels,
+            **join_ctx,
         },
     )
+
+
+def _join_request_context(request, prop):
+    from accounts.models import UserProfile
+    from accounts.privileges import get_user_role
+
+    ctx = {
+        'can_request_join': False,
+        'join_request_form': JoinRequestForm(),
+        'pending_join_request': None,
+    }
+    user = request.user
+    if not user.is_authenticated:
+        return ctx
+    if not prop.is_for_rent or prop.is_occupied:
+        return ctx
+    if prop.owner_id == user.id:
+        return ctx
+    if get_user_role(user) != UserProfile.ROLE_TENANT:
+        return ctx
+    if prop.tenants.filter(user=user, is_active=True).exists():
+        return ctx
+    pending = prop.join_requests.filter(user=user, status='pending').first()
+    ctx['pending_join_request'] = pending
+    ctx['can_request_join'] = pending is None
+    return ctx
+
+
+def _handle_join_request(request, prop):
+    from accounts.models import UserProfile
+    from accounts.privileges import get_user_role
+    from .notifications import notify_user
+
+    brand = get_request_brand(request)
+    if not request.user.is_authenticated:
+        messages.error(request, 'Log in as a tenant to request this vacant property.')
+        return redirect('login')
+    if get_user_role(request.user) != UserProfile.ROLE_TENANT:
+        messages.error(request, 'Only tenant accounts can request to join a vacant property.')
+        return redirect('public_detail', pk=prop.pk)
+    if not prop.is_for_rent or prop.is_occupied:
+        messages.error(request, 'This property is not vacant.')
+        return redirect('public_detail', pk=prop.pk)
+    form = JoinRequestForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, 'Could not send the request.')
+        return redirect('public_detail', pk=prop.pk)
+    if prop.join_requests.filter(user=request.user, status='pending').exists():
+        messages.info(request, 'You already requested this property. Wait for the owner to add you.')
+        return redirect('public_detail', pk=prop.pk)
+    TenantJoinRequest.objects.create(
+        property=prop,
+        brand=brand,
+        user=request.user,
+        message=form.cleaned_data.get('message') or '',
+    )
+    notify_user(
+        user=prop.owner,
+        brand=brand,
+        kind='join_request',
+        title=f'{request.user.username} asked to join {prop.title}',
+        url=reverse('property_manage', args=[prop.pk]),
+    )
+    messages.success(request, 'Request sent. The owner needs to add you to this property.')
+    return redirect('public_detail', pk=prop.pk)
 
 def marketing(request):
     from django.urls import reverse
@@ -877,7 +953,6 @@ def dashboard(request):
     total_advance = rent_props.aggregate(total=Sum('advance_amount'))['total'] or Decimal('0')
     occupied = rent_props.filter(is_occupied=True).count()
     vacant = rent_props.filter(is_occupied=False).count()
-    vacant = rent_props.filter(is_occupied=False).count()
     unread_enquiries = Enquiry.objects.filter(
         property__in=props, is_read=False
     ).count()
@@ -944,6 +1019,7 @@ def dashboard(request):
         actions=[
             build_button('Reports', href=reverse('reports'), variant='secondary'),
             build_button('Add property', href=reverse('property_create'), variant='primary'),
+            build_button('Send month rent reminder', variant='secondary', open_popup='rent-reminder'),
             build_button('How this works', variant='secondary', open_popup='dashboard-help'),
         ],
     )
@@ -1027,6 +1103,39 @@ def dashboard(request):
         empty_text='No rent payments recorded yet.',
     )
 
+    reminder_tenants = (
+        Tenant.objects.filter(property__in=rent_props, is_active=True)
+        .select_related('property', 'user')
+        .order_by('name')
+    )
+    reminder_rows = ''.join(
+        (
+            '<label class="checkbox-row" style="display:flex;gap:0.5rem;margin:0.35rem 0">'
+            f'<input type="checkbox" name="tenants" value="{tenant.pk}" checked>'
+            f'<span>{tenant.name} · {tenant.property.title}'
+            f'{" (no login)" if not tenant.user_id else ""}</span></label>'
+        )
+        for tenant in reminder_tenants
+    ) or '<p class="meta">No active tenants yet.</p>'
+    reminder_body = (
+        '<p class="meta">Select tenants. The reminder is delivered to each tenant inbox.</p>'
+        + reminder_rows
+        + '<label for="id_reminder_message" style="display:block;margin-top:0.85rem">Message</label>'
+        + '<textarea id="id_reminder_message" name="message" rows="4">'
+        'This is a reminder to pay this month’s rent. Please check your tenant portal.'
+        '</textarea>'
+    )
+    rent_reminder_popup = build_popup(
+        'rent-reminder',
+        title='Send month rent reminder',
+        body=mark_safe(reminder_body),
+        body_html=True,
+        form_action=reverse('rent_reminder_send'),
+        confirm_label='Send reminder',
+        cancel_label='Cancel',
+        size='lg',
+    )
+
     return render(
         request,
         'properties/dashboard.html',
@@ -1060,8 +1169,46 @@ def dashboard(request):
             'properties_panel_actions': [
                 build_button('View all', href=reverse('my_properties'), variant='secondary', size='sm'),
             ],
+            'rent_reminder_popup': rent_reminder_popup,
         },
     )
+
+
+@login_required
+@privilege_required('manage_rent_reminders')
+@require_POST
+def rent_reminder_send(request):
+    from .notifications import notify_user
+
+    brand = get_request_brand(request)
+    props = Property.for_user(request.user, brand=brand)
+    tenants = Tenant.objects.filter(property__in=props, is_active=True).select_related('property', 'user')
+    form = RentReminderForm(request.POST, tenants=tenants)
+    if not form.is_valid():
+        messages.error(request, 'Select at least one tenant and enter a message.')
+        return redirect('dashboard')
+    sent = 0
+    skipped = 0
+    body = form.cleaned_data['message']
+    for tenant in form.cleaned_data['tenants']:
+        if not tenant.user_id:
+            skipped += 1
+            continue
+        notify_user(
+            user=tenant.user,
+            brand=brand,
+            kind='rent_reminder',
+            title=body[:200],
+            url=reverse('tenant_portal'),
+        )
+        sent += 1
+    if sent:
+        messages.success(request, f'Rent reminder sent to {sent} tenant inbox{"es" if sent != 1 else ""}.')
+    if skipped:
+        messages.info(request, f'{skipped} tenant(s) have no login yet, so they did not get an inbox message.')
+    if not sent and not skipped:
+        messages.info(request, 'No tenants selected.')
+    return redirect('dashboard')
 
 
 @login_required
@@ -1069,7 +1216,8 @@ def dashboard(request):
 def my_properties(request):
     from django.urls import reverse
 
-    from accounts.ui_components import build_button, build_empty, build_listing, build_listings, build_page_header
+    from accounts.ui_components import build_button, build_empty, build_listing, build_listings, build_page_header, build_popup
+    from django.utils.safestring import mark_safe
 
     props = Property.for_user(request.user, brand=get_request_brand(request)).prefetch_related('tenants', 'payments', 'images')
     cards = []
@@ -1086,6 +1234,8 @@ def my_properties(request):
             lines = [f'Advance ₹{prop.advance_amount:,.0f}']
             if tenant:
                 lines.append(f'Tenant: {tenant.name}')
+            if prop.planned_vacate_date:
+                lines.append(f'Vacating {prop.planned_vacate_date:%d %b %Y}')
             price = f'Rent ₹{prop.monthly_rent:,.0f}' if prop.monthly_rent else '—'
             badges = [
                 {'label': 'Public' if prop.is_listed_publicly else 'Private', 'tone': ''},
@@ -1094,6 +1244,19 @@ def my_properties(request):
                     'tone': 'occupied' if prop.is_occupied else 'vacant',
                 },
             ]
+        listing_actions = [
+            build_button('Manage', href=reverse('property_manage', args=[prop.pk]), variant='primary', size='sm'),
+            build_button('Edit', href=reverse('property_edit', args=[prop.pk]), variant='secondary', size='sm'),
+        ]
+        if prop.is_for_rent:
+            listing_actions.append(
+                build_button(
+                    'Vacant',
+                    variant='secondary',
+                    size='sm',
+                    open_popup=f'vacate-{prop.pk}',
+                )
+            )
         cards.append(
             build_listing(
                 prop.title,
@@ -1102,10 +1265,27 @@ def my_properties(request):
                 price=price,
                 badges=badges,
                 lines=lines,
-                actions=[
-                    build_button('Manage', href=reverse('property_manage', args=[prop.pk]), variant='primary', size='sm'),
-                    build_button('Edit', href=reverse('property_edit', args=[prop.pk]), variant='secondary', size='sm'),
-                ],
+                actions=listing_actions,
+            )
+        )
+    vacate_popups = []
+    for prop in props:
+        if not prop.is_for_rent:
+            continue
+        initial = prop.planned_vacate_date.isoformat() if prop.planned_vacate_date else ''
+        vacate_popups.append(
+            build_popup(
+                f'vacate-{prop.pk}',
+                title=f'Vacate date — {prop.title}',
+                body=mark_safe(
+                    '<p class="meta">Choose the future date when the tenant will vacate this home.</p>'
+                    '<label for="id_planned_vacate_date">Vacate date</label>'
+                    f'<input type="date" name="planned_vacate_date" id="id_planned_vacate_date" required value="{initial}">'
+                ),
+                body_html=True,
+                form_action=reverse('property_vacate', args=[prop.pk]),
+                confirm_label='Save date',
+                cancel_label='Cancel',
             )
         )
     return render(
@@ -1124,6 +1304,7 @@ def my_properties(request):
                 action_label='Add your first one',
                 action_href=reverse('property_create'),
             ),
+            'vacate_popups': vacate_popups,
         },
     )
 
@@ -1131,16 +1312,22 @@ def my_properties(request):
 @login_required
 @privilege_required('manage_properties')
 def property_create(request):
+    from .models import ensure_default_amenities
+
+    ensure_default_amenities()
     brand = get_request_brand(request)
     if request.method == 'POST':
-        form = PropertyForm(request.POST, user=request.user, brand=brand)
+        form = PropertyForm(request.POST, request.FILES, user=request.user, brand=brand)
         if form.is_valid():
             prop = form.save(commit=False)
             prop.owner = request.user
             assign_brand(prop, brand)
+            if prop.building_id is None and form.cleaned_data.get('building'):
+                prop.building = form.cleaned_data['building']
             prop.save()
             form.save_m2m()
-            messages.success(request, 'Property added.')
+            form._save_other_amenity(prop)
+            messages.success(request, 'Property added. You can add a tenant next, or go back to the listing.')
             return redirect('property_manage', pk=prop.pk)
     else:
         form = PropertyForm(user=request.user, brand=brand)
@@ -1154,7 +1341,13 @@ def property_edit(request, pk):
     if prop is None:
         return HttpResponseForbidden('Not allowed')
     if request.method == 'POST':
-        form = PropertyForm(request.POST, instance=prop, user=request.user, brand=get_request_brand(request))
+        form = PropertyForm(
+            request.POST,
+            request.FILES,
+            instance=prop,
+            user=request.user,
+            brand=get_request_brand(request),
+        )
         if form.is_valid():
             form.save()
             messages.success(request, 'Property updated.')
@@ -1209,6 +1402,7 @@ def property_manage(request, pk):
     subtitle_bits.append(city_line)
 
     actions = [
+        {'label': 'Back to properties', 'href': reverse('my_properties'), 'variant': 'secondary', 'size': 'sm'},
         {'label': 'Edit', 'href': reverse('property_edit', args=[prop.pk]), 'variant': 'secondary', 'size': 'sm'},
     ]
     is_owner = prop.owner_id == request.user.id
@@ -1270,6 +1464,7 @@ def property_manage(request, pk):
             'meters': prop.meter_readings.all()[:10],
             'document_form': DocumentForm(property_obj=prop),
             'meter_form': MeterReadingForm(initial={'reading_date': timezone.localdate()}),
+            'join_requests': prop.join_requests.filter(status='pending').select_related('user'),
             'page_header': build_page_header(
                 prop.title,
                 subtitle=' · '.join(subtitle_bits),
@@ -1294,6 +1489,7 @@ def tenant_add(request, pk):
             tenant = form.save(commit=False)
             tenant.property = prop
             tenant.save()
+            apply_tenant_login_fields(tenant, form, brand=get_request_brand(request))
             if tenant.is_active:
                 prop.is_occupied = True
                 prop.save(update_fields=['is_occupied'])
@@ -1318,6 +1514,7 @@ def tenant_edit(request, pk, tenant_id):
         form = TenantForm(request.POST, request.FILES, instance=tenant)
         if form.is_valid():
             form.save()
+            apply_tenant_login_fields(tenant, form, brand=get_request_brand(request))
             prop.is_occupied = prop.tenants.filter(is_active=True).exists()
             prop.save(update_fields=['is_occupied'])
             messages.success(request, 'Tenant updated.')
@@ -1329,6 +1526,114 @@ def tenant_edit(request, pk, tenant_id):
         'properties/tenant_form.html',
         {'form': form, 'property': prop, 'mode': 'edit', 'tenant': tenant},
     )
+
+
+@login_required
+@privilege_required('manage_tenants')
+def tenant_create_login(request, pk, tenant_id):
+    prop = _manageable_property(request, pk)
+    if prop is None:
+        return HttpResponseForbidden('Not allowed')
+    tenant = get_object_or_404(Tenant, pk=tenant_id, property=prop)
+    if tenant.user_id:
+        messages.info(request, f'This tenant already has login: {tenant.user.username}')
+        return redirect('tenant_edit', pk=prop.pk, tenant_id=tenant.pk)
+    if request.method == 'POST':
+        form = TenantLoginForm(request.POST)
+        if form.is_valid():
+            create_login_for_tenant(
+                tenant,
+                form.cleaned_data['username'],
+                form.cleaned_data['password'],
+                brand=get_request_brand(request),
+                email=tenant.email,
+            )
+            messages.success(
+                request,
+                f'Login created. Username: {form.cleaned_data["username"]}. Share this password with the tenant.',
+            )
+            return redirect('property_manage', pk=prop.pk)
+    else:
+        form = TenantLoginForm(initial={'username': (tenant.email or tenant.name or 'tenant').split('@')[0][:150]})
+    return render(
+        request,
+        'properties/tenant_login_form.html',
+        {'form': form, 'property': prop, 'tenant': tenant},
+    )
+
+
+@login_required
+@privilege_required('manage_properties')
+@require_POST
+def property_vacate(request, pk):
+    prop = _manageable_property(request, pk)
+    if prop is None:
+        return HttpResponseForbidden('Not allowed')
+    form = PlannedVacateForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, 'Pick a future vacate date.')
+        return redirect('my_properties')
+    prop.planned_vacate_date = form.cleaned_data['planned_vacate_date']
+    tenant = prop.current_tenant
+    if tenant:
+        tenant.lease_end_date = prop.planned_vacate_date
+        tenant.save(update_fields=['lease_end_date'])
+    prop.save(update_fields=['planned_vacate_date'])
+    messages.success(request, f'Vacate date set to {prop.planned_vacate_date:%d %b %Y}.')
+    return redirect('my_properties')
+
+
+@login_required
+@privilege_required('manage_tenants')
+@require_POST
+def join_request_review(request, pk, request_id):
+    from .notifications import notify_user
+
+    prop = _manageable_property(request, pk)
+    if prop is None:
+        return HttpResponseForbidden('Not allowed')
+    join = get_object_or_404(TenantJoinRequest, pk=request_id, property=prop)
+    action = request.POST.get('action')
+    if join.status != 'pending':
+        messages.info(request, 'That request was already reviewed.')
+        return redirect('property_manage', pk=prop.pk)
+    join.reviewed_at = timezone.now()
+    if action == 'accept':
+        if prop.is_occupied and prop.current_tenant and prop.current_tenant.user_id != join.user_id:
+            messages.error(request, 'This property already has an active tenant.')
+            return redirect('property_manage', pk=prop.pk)
+        join.status = 'accepted'
+        join.save(update_fields=['status', 'reviewed_at'])
+        tenant = Tenant.objects.create(
+            property=prop,
+            user=join.user,
+            name=join.user.get_full_name() or join.user.username,
+            email=join.user.email or '',
+            is_active=True,
+            move_in_date=timezone.localdate(),
+        )
+        prop.is_occupied = True
+        prop.save(update_fields=['is_occupied'])
+        notify_user(
+            user=join.user,
+            brand=get_request_brand(request),
+            kind='join_request',
+            title=f'You were added to {prop.title}',
+            url=reverse('tenant_portal'),
+        )
+        messages.success(request, f'{tenant.name} was added to this property.')
+    else:
+        join.status = 'rejected'
+        join.save(update_fields=['status', 'reviewed_at'])
+        notify_user(
+            user=join.user,
+            brand=get_request_brand(request),
+            kind='join_request',
+            title=f'Request to join {prop.title} was declined',
+            url=reverse('public_detail', args=[prop.pk]),
+        )
+        messages.info(request, 'Join request declined.')
+    return redirect('property_manage', pk=prop.pk)
 
 
 @login_required

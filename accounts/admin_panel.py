@@ -5,6 +5,7 @@ from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from properties.forms import AdminBroadcastForm
 from properties.models import (
     Building,
     Complaint,
@@ -19,6 +20,7 @@ from properties.models import (
     SitePromotion,
     Tenant,
 )
+from properties.notifications import notify_user
 
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -324,6 +326,7 @@ def staff_dashboard(request):
                 tooltip='Control center for the active brand.',
                 actions=[
                     build_button('Create Owner / Tenant login', href=reverse('staff_create_user'), variant='primary'),
+                    build_button('Message users', href=reverse('staff_broadcast'), variant='secondary'),
                     build_button('Django admin', href='/admin/', variant='secondary'),
                     build_button(
                         'Page not found',
@@ -345,6 +348,51 @@ def staff_dashboard(request):
                     {'label': 'Properties', 'value': filter_by_brand(Property.objects.all(), brand).count()},
                     {'label': 'Activity logs', 'value': logs.count()},
                 ]
+            ),
+        },
+    )
+
+
+@admin_required
+def staff_broadcast(request):
+    brand = get_request_brand(request)
+    users = users_for_brand(brand).select_related('profile').order_by('username')
+    if request.method == 'POST':
+        form = AdminBroadcastForm(request.POST, users=users)
+        if form.is_valid():
+            audience = form.cleaned_data['audience']
+            title = form.cleaned_data['title']
+            body = form.cleaned_data['body']
+            qs = users.filter(is_active=True)
+            if audience == 'owners':
+                qs = qs.filter(profile__role=UserProfile.ROLE_OWNER)
+            elif audience == 'tenants':
+                qs = qs.filter(profile__role=UserProfile.ROLE_TENANT)
+            elif audience == 'selected':
+                qs = form.cleaned_data['users']
+            count = 0
+            for user in qs:
+                notify_user(
+                    user=user,
+                    brand=brand,
+                    kind='admin_message',
+                    title=f'{title}: {body}'[:200],
+                    url=reverse('inbox'),
+                )
+                count += 1
+            messages.success(request, f'Message sent to {count} user{"s" if count != 1 else ""}.')
+            return redirect('staff_broadcast')
+    else:
+        form = AdminBroadcastForm(users=users)
+    return render(
+        request,
+        'accounts/admin/broadcast.html',
+        {
+            **_admin_context('dashboard', request),
+            'form': form,
+            'page_header': build_page_header(
+                'Send a message',
+                subtitle='Reach all users, owners, tenants, or a selected list.',
             ),
         },
     )

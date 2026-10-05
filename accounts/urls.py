@@ -41,6 +41,7 @@ urlpatterns = [
     ),
     # Admin panel (staff / admin role only)
     path('staff/', admin_panel.staff_dashboard, name='staff_dashboard'),
+    path('staff/broadcast/', admin_panel.staff_broadcast, name='staff_broadcast'),
     path('staff/users/', admin_panel.staff_users, name='staff_users'),
     path('staff/users/create/', admin_panel.staff_create_user, name='staff_create_user'),
     path('staff/users/<int:user_id>/', admin_panel.staff_user_detail, name='staff_user_detail'),

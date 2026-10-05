@@ -6,4 +6,7 @@
 {% block content %}
 {% ui_page_header page_header %}
 {% ui_listings listing_cards empty=listings_empty %}
+{% for popup in vacate_popups %}
+  {% ui_popup popup %}
+{% endfor %}
 {% endblock %}

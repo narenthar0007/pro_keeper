@@ -81,7 +81,11 @@
               <span class="badge">Past</span>
             {% endif %}
           </td>
-          <td><a href="{% url 'tenant_edit' property.pk tenant.pk %}">Edit</a></td>
+          <td><a href="{% url 'tenant_edit' property.pk tenant.pk %}">Edit</a>
+            {% if not tenant.user %}
+              · <a href="{% url 'tenant_create_login' property.pk tenant.pk %}">Create login</a>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -90,6 +94,32 @@
     {% ui_empty text="No tenants added yet." %}
   {% endif %}
 </section>
+
+{% if join_requests %}
+<section class="panel">
+  <div class="section-head">
+    {% ui_heading text="Tenant join requests" level=2 %}
+  </div>
+  <table>
+    <thead><tr><th>User</th><th>Message</th><th></th></tr></thead>
+    <tbody>
+      {% for item in join_requests %}
+      <tr>
+        <td>{{ item.user.username }}<br><span class="meta">{{ item.created_at|date:"d M Y H:i" }}</span></td>
+        <td>{% if item.message %}{{ item.message }}{% else %}—{% endif %}</td>
+        <td class="actions" style="margin:0">
+          <form method="post" action="{% url 'join_request_review' property.pk item.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-primary btn-sm" type="submit" name="action" value="accept">Add to property</button>
+            <button class="btn btn-secondary btn-sm" type="submit" name="action" value="reject">Decline</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
 
 {% if property.is_for_rent %}
 <section class="panel">

@@ -43,6 +43,12 @@
           {% if form.building.help_text %}<p class="meta">{{ form.building.help_text }}</p>{% endif %}
         </div>
         <div class="form-field">
+          <label for="{{ form.new_building_name.id_for_label }}">Or type a building name</label>
+          {{ form.new_building_name }}
+          {{ form.new_building_name.errors }}
+          {% if form.new_building_name.help_text %}<p class="meta">{{ form.new_building_name.help_text }}</p>{% endif %}
+        </div>
+        <div class="form-field">
           <label for="{{ form.unit_number.id_for_label }}">Unit number</label>
           {{ form.unit_number }}
           {{ form.unit_number.errors }}
@@ -200,6 +206,16 @@
           {{ form.bedrooms.errors }}
         </div>
         <div class="form-field">
+          <label for="{{ form.rooms.id_for_label }}">No. of rooms</label>
+          {{ form.rooms }}
+          {{ form.rooms.errors }}
+        </div>
+        <div class="form-field">
+          <label for="{{ form.kitchens.id_for_label }}">No. of kitchens</label>
+          {{ form.kitchens }}
+          {{ form.kitchens.errors }}
+        </div>
+        <div class="form-field">
           <label for="{{ form.bathrooms.id_for_label }}">Bathrooms</label>
           {{ form.bathrooms }}
           {{ form.bathrooms.errors }}
@@ -221,9 +237,19 @@
           {{ form.is_listed_publicly.errors }}
         </div>
         <div class="form-field full">
-          <label for="{{ form.amenities.id_for_label }}">Amenities</label>
-          {{ form.amenities }}
+          <label>Amenities</label>
+          <p class="meta">Select all that apply. Use Others for a custom value.</p>
           {{ form.amenities.errors }}
+          <div class="amenity-checks">
+            {% for check in form.amenities %}
+            <label class="checkbox-row">{{ check.tag }} {{ check.choice_label }}</label>
+            {% endfor %}
+          </div>
+          <div class="form-field" style="margin-top:0.75rem">
+            <label for="{{ form.other_amenity.id_for_label }}">Others (custom)</label>
+            {{ form.other_amenity }}
+            {{ form.other_amenity.errors }}
+          </div>
         </div>
       </div>
     </div>
@@ -234,8 +260,11 @@
       {% else %}
       {% ui_button label="Update" variant="primary" type="submit" %}
       {% endif %}
-      {% if property %}{% url 'property_manage' property.pk as cancel_url %}{% else %}{% url 'my_properties' as cancel_url %}{% endif %}
+      {% url 'my_properties' as listing_url %}
+      {% ui_button label="Back to property listing" href=listing_url variant="secondary" %}
+      {% if property %}{% url 'property_manage' property.pk as cancel_url %}
       {% ui_button label="Cancel" href=cancel_url variant="secondary" %}
+      {% endif %}
     </div>
   </form>
 </section>

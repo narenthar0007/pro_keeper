@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Create tenant login — PropKeep{% endblock %}
+
+{% block content %}
+{% url 'property_manage' property.pk as cancel_url %}
+{% ui_form form=form title="Create login details" subtitle=tenant.name submit_label="Create login" cancel_href=cancel_url %}
+<p class="meta">Share the username and password with the tenant after saving.</p>
+{% endblock %}

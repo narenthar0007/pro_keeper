@@ -71,7 +71,9 @@
       {% if property.state %}<strong>State:</strong> {{ property.state }}{% endif %}
       {% if property.country %} &nbsp;·&nbsp; <strong>Country:</strong> {{ property.country }}{% endif %}
     </p>
-    <p><strong>Bedrooms:</strong> {{ property.bedrooms }} &nbsp;·&nbsp; <strong>Bathrooms:</strong> {{ property.bathrooms }}
+    <p><strong>Bedrooms:</strong> {{ property.bedrooms }} &nbsp;·&nbsp; <strong>Rooms:</strong> {{ property.rooms }}
+      &nbsp;·&nbsp; <strong>Kitchens:</strong> {{ property.kitchens }}
+      &nbsp;·&nbsp; <strong>Bathrooms:</strong> {{ property.bathrooms }}
       {% if property.area_sqft %} &nbsp;·&nbsp; <strong>Area:</strong> {{ property.area_sqft }} sq.ft{% endif %}
       {% if property.year_of_building %} &nbsp;·&nbsp; <strong>Built:</strong> {{ property.year_of_building }}{% endif %}
     </p>
@@ -102,6 +104,26 @@
   </div>
   {% endif %}
 </article>
+
+{% if can_request_join or pending_join_request %}
+<section class="panel">
+  {% ui_heading text="Move into this property" level=2 %}
+  {% if pending_join_request %}
+    <p>Your request is waiting for the owner to add you to this vacant property.</p>
+  {% else %}
+    <p class="meta">This listing is vacant. If you already have a tenant login, request the owner to add you.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="form_name" value="join_request">
+      {{ join_request_form.message }}
+      {{ join_request_form.message.errors }}
+      <div class="actions form-actions">
+        {% ui_button label="Request owner to add me" variant="primary" type="submit" %}
+      </div>
+    </form>
+  {% endif %}
+</section>
+{% endif %}
 
 <section class="panel">
   {% ui_form form=enquiry_form title="Send an enquiry" submit_label="Send enquiry" %}
