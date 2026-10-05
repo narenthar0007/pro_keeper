@@ -1294,6 +1294,14 @@ ul.errorlist {
   align-items: center;
   gap: 0.4rem;
   font-weight: 500;
+  cursor: pointer;
+  margin: 0;
+}
+
+.amenity-checks input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
 }
 
 .amenity-checks ul {

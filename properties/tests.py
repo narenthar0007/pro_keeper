@@ -466,7 +466,6 @@ class PropertyOpsTests(TestCase):
         ensure_default_amenities()
         self.client.login(username='ops_owner', password='pass12345')
         amenity = Amenity.objects.exclude(code='others').first()
-        others = Amenity.objects.get(code='others')
         response = self.client.post(
             reverse('property_create'),
             {
@@ -485,7 +484,8 @@ class PropertyOpsTests(TestCase):
                 'furnishing': 'unfurnished',
                 'sale_status': 'available',
                 'advance_amount': '0',
-                'amenities': [str(amenity.pk), str(others.pk)],
+                'amenities': [str(amenity.pk)],
+                'add_other_amenity': 'on',
                 'other_amenity': 'Servant room',
             },
         )

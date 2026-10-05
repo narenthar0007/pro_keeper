@@ -3,8 +3,6 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.text import slugify
 
-from django.db.models import Case, IntegerField, When
-
 from .models import (
     Amenity,
     Building,
@@ -51,6 +49,10 @@ class PropertyForm(forms.ModelForm):
         max_length=200,
         label='Or type a building name',
         help_text='Type an existing building name to reuse it for another shop or home.',
+    )
+    add_other_amenity = forms.BooleanField(
+        required=False,
+        label='Others',
     )
     other_amenity = forms.CharField(
         required=False,
@@ -135,18 +137,11 @@ class PropertyForm(forms.ModelForm):
         ensure_default_amenities()
         self.fields['building'].required = False
         self.fields['amenities'].required = False
-        self.fields['amenities'].queryset = Amenity.objects.annotate(
-            others_last=Case(
-                When(code=OTHERS_AMENITY_CODE, then=1),
-                default=0,
-                output_field=IntegerField(),
-            )
-        ).order_by('others_last', 'label')
+        self.fields['amenities'].queryset = Amenity.objects.exclude(
+            code=OTHERS_AMENITY_CODE
+        ).order_by('label')
         self.fields['amenities'].widget = forms.CheckboxSelectMultiple()
-        self.fields['amenities'].help_text = 'Select every amenity that applies. Choose Others to type a custom one.'
-        self.others_amenity_id = Amenity.objects.filter(code=OTHERS_AMENITY_CODE).values_list(
-            'pk', flat=True
-        ).first()
+        self.fields['amenities'].help_text = 'Select every amenity that applies. Tick Others to type a custom one.'
         if user is not None and brand is not None:
             self.fields['building'].queryset = Building.for_user(user, brand=brand).order_by('name')
         else:
@@ -167,14 +162,32 @@ class PropertyForm(forms.ModelForm):
             'Unique shop / flat / room number in this building. Copied from door number if left blank.'
         )
 
+    def amenity_checkbox_items(self):
+        selected = set()
+        if self.is_bound:
+            selected = {str(value) for value in self.data.getlist('amenities')}
+        elif self.instance and self.instance.pk:
+            selected = {
+                str(pk)
+                for pk in self.instance.amenities.exclude(code=OTHERS_AMENITY_CODE).values_list(
+                    'pk', flat=True
+                )
+            }
+        return [
+            {
+                'id': amenity.pk,
+                'label': amenity.label,
+                'checked': str(amenity.pk) in selected,
+            }
+            for amenity in self.fields['amenities'].queryset
+        ]
+
     def clean(self):
         cleaned = super().clean()
         listing_type = cleaned.get('listing_type')
-        others = Amenity.objects.filter(code=OTHERS_AMENITY_CODE).first()
-        selected = list(cleaned.get('amenities') or [])
-        others_selected = bool(others and others in selected)
-        if others_selected:
-            cleaned['amenities'] = [item for item in selected if item.code != OTHERS_AMENITY_CODE]
+        selected = [item for item in (cleaned.get('amenities') or []) if item.code != OTHERS_AMENITY_CODE]
+        cleaned['amenities'] = selected
+        if cleaned.get('add_other_amenity'):
             if not (cleaned.get('other_amenity') or '').strip():
                 self.add_error('other_amenity', 'Type the custom amenity name.')
         else:

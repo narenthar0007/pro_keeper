@@ -363,7 +363,9 @@ def public_property_detail(request, pk):
         is_saved = SavedListing.objects.filter(
             user=request.user, property=prop, brand=brand
         ).exists()
-    amenity_labels = list(prop.amenities.values_list('label', flat=True))
+    amenity_labels = list(
+        prop.amenities.exclude(code='others').values_list('label', flat=True)
+    )
     if prop.building_id:
         amenity_labels = list(
             dict.fromkeys(
@@ -1382,7 +1384,7 @@ def property_manage(request, pk):
     if prop is None:
         return HttpResponseForbidden('Not allowed')
     prop = Property.objects.select_related('building').prefetch_related(
-        'tenants', 'payments', 'images', 'expenses', 'complaints', 'shares__user'
+        'tenants', 'payments', 'images', 'expenses', 'complaints', 'shares__user', 'amenities'
     ).get(pk=prop.pk)
 
     payments = prop.payments.select_related('tenant')
@@ -1468,6 +1470,10 @@ def property_manage(request, pk):
             'document_form': DocumentForm(property_obj=prop),
             'meter_form': MeterReadingForm(initial={'reading_date': timezone.localdate()}),
             'join_requests': prop.join_requests.filter(status='pending').select_related('user'),
+            'amenity_labels': [
+                label
+                for label in prop.amenities.exclude(code='others').values_list('label', flat=True)
+            ],
             'page_header': build_page_header(
                 prop.title,
                 subtitle=' · '.join(subtitle_bits),

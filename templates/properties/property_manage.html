@@ -8,6 +8,10 @@
 {% ui_page_header page_header %}
 {% ui_kpis kpis %}
 
+{% if amenity_labels %}
+<p class="meta" style="margin-top:0">Amenities: {{ amenity_labels|join:", " }}</p>
+{% endif %}
+
 <section class="panel">
   <div class="section-head">
     {% ui_heading text="Photos" level=2 %}

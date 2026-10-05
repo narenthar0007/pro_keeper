@@ -240,10 +240,20 @@
           <label>Amenities</label>
           <p class="meta">Select all that apply. Tick Others to type a custom amenity.</p>
           {{ form.amenities.errors }}
+          {{ form.add_other_amenity.errors }}
           <div class="amenity-checks">
-            {% for check in form.amenities %}
-            <label class="checkbox-row amenity-option">{{ check.tag }} {{ check.choice_label }}</label>
+            {% for item in form.amenity_checkbox_items %}
+            <label class="checkbox-row amenity-option">
+              <input type="checkbox" name="amenities" value="{{ item.id }}" {% if item.checked %}checked{% endif %}>
+              <span>{{ item.label }}</span>
+            </label>
+            {% empty %}
+            <p class="meta">No amenities loaded. Save once, then edit this property to choose amenities.</p>
             {% endfor %}
+            <label class="checkbox-row amenity-option">
+              {{ form.add_other_amenity }}
+              <span>Others</span>
+            </label>
           </div>
           <div class="form-field" id="other-amenity-wrap" style="margin-top:0.75rem;display:none">
             <label for="{{ form.other_amenity.id_for_label }}">{{ form.other_amenity.label }}</label>
@@ -283,23 +293,16 @@
     toggle();
   }
 
-  const othersId = '{{ form.others_amenity_id }}';
   const otherWrap = document.getElementById('other-amenity-wrap');
   const otherInput = document.getElementById('{{ form.other_amenity.id_for_label }}');
-  function othersBox() {
-    if (!othersId) return null;
-    return document.querySelector('#id_amenities input[value="' + othersId + '"]')
-      || document.querySelector('input[name="amenities"][value="' + othersId + '"]');
-  }
+  const othersBox = document.getElementById('{{ form.add_other_amenity.id_for_label }}');
   function toggleOthers() {
-    const box = othersBox();
-    const show = !!(box && box.checked);
+    const show = !!(othersBox && othersBox.checked);
     if (otherWrap) otherWrap.style.display = show ? '' : 'none';
     if (!show && otherInput) otherInput.value = '';
   }
-  const box = othersBox();
-  if (box) {
-    box.addEventListener('change', toggleOthers);
+  if (othersBox) {
+    othersBox.addEventListener('change', toggleOthers);
     toggleOthers();
   }
 })();
