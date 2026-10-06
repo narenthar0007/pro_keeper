@@ -29,6 +29,7 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
     path('hrms/', include('hrms.urls')),
     path('api/', include(router.urls)),
+    path('api/mobile/', include('properties.mobile_urls')),
     path('api/hrms/punch-code/decode/', punch_code_decode, name='api-hrms-punch-decode'),
     path('api-auth/', include('rest_framework.urls')),
     path('', include('properties.urls')),

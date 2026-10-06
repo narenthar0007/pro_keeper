@@ -48,6 +48,7 @@ ALLOWED_HOSTS = _env_list(
         'checkpro.localhost',
         'checkpro.local',
         'propkeep.localhost',
+        '*',
     ],
 )
 
@@ -75,6 +76,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
+    'corsheaders',
     'accounts.apps.AccountsConfig',
     'properties',
     'hrms.apps.HrmsConfig',
@@ -82,6 +85,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -189,12 +193,19 @@ EMAIL_HOST_PASSWORD = _env('EMAIL_HOST_PASSWORD', '')
 EMAIL_USE_TLS = _env_bool('EMAIL_USE_TLS', True)
 
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
 }
+
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
 
 # HTTPS / proxy (Render, Railway, etc.)
 if not DEBUG:

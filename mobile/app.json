@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "PropKeep",
+    "slug": "propkeep-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#0b5fff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.propkeep.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0b5fff"
+      },
+      "package": "com.propkeep.mobile"
+    },
+    "extra": {
+      "apiUrl": "https://narenthar.pythonanywhere.com"
+    }
+  }
+}

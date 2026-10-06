@@ -133,6 +133,16 @@ python manage.py collectstatic --no-input
 
 Then **Web** → **Reload**.
 
+### Mobile app API (`/api/mobile/`)
+
+After `git pull`, run `migrate` so `authtoken` tables exist. Reload the web app, then open:
+
+`https://YOURUSERNAME.pythonanywhere.com/api/mobile/options/`
+
+You should see JSON (amenities, property types, etc.). If you get the PropKeep **404** page, the server code is still old — pull again and reload.
+
+The Expo app in `mobile/` defaults to `https://narenthar.pythonanywhere.com` (see `mobile/app.json` → `extra.apiUrl`).
+
 ---
 
 ## Free tier limits (good to know)

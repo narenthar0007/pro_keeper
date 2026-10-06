@@ -556,3 +556,25 @@ class PropertyOpsTests(TestCase):
         prop.refresh_from_db()
         self.assertEqual(prop.planned_vacate_date, future)
 
+
+class MobileApiTests(TestCase):
+    def setUp(self):
+        ensure_default_brands()
+        ensure_default_privileges()
+        self.brand = Brand.objects.get(slug='propkeep')
+        self.owner = User.objects.create_user('mob_owner', 'm@example.com', 'pass12345')
+        self.owner.profile.brand = self.brand
+        self.owner.profile.save(update_fields=['brand'])
+
+    def test_mobile_login_and_properties(self):
+        client = Client()
+        response = client.post(
+            '/api/mobile/auth/login/',
+            {'username': 'mob_owner', 'password': 'pass12345'},
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        token = response.json()['token']
+        listed = client.get('/api/mobile/properties/', HTTP_AUTHORIZATION=f'Token {token}')
+        self.assertEqual(listed.status_code, 200)
+

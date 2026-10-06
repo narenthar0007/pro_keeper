@@ -11,3 +11,6 @@ media/
 *.log
 .idea/
 .vscode/
+node_modules/
+mobile/node_modules/
+mobile/.expo/
