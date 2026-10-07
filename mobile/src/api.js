@@ -1,13 +1,10 @@
-import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
+import { DEFAULT_API_URL as CONFIG_API_URL } from './config';
 
 const TOKEN_KEY = 'propkeep_token';
 const API_KEY = 'propkeep_api';
 
-/** Live PropKeep backend (PythonAnywhere). Override on login if needed. */
-export const DEFAULT_API_URL = (
-  Constants.expoConfig?.extra?.apiUrl || 'https://narenthar.pythonanywhere.com'
-).replace(/\/$/, '');
+export const DEFAULT_API_URL = CONFIG_API_URL.replace(/\/$/, '');
 
 export async function getApiUrl() {
   const saved = await SecureStore.getItemAsync(API_KEY);

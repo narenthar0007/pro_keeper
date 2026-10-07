@@ -14,3 +14,8 @@ media/
 node_modules/
 mobile/node_modules/
 mobile/.expo/
+mobile/dist/
+mobile/android/
+mobile/ios/
+mobile/eas-build-log.txt
+mobile/eas-last-build.json

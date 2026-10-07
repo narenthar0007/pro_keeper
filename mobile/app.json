@@ -5,8 +5,11 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
     "splash": {
-      "backgroundColor": "#0b5fff"
+      "backgroundColor": "#0b5fff",
+      "image": "./assets/icon.png",
+      "resizeMode": "contain"
     },
     "ios": {
       "supportsTablet": true,
@@ -14,12 +17,16 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#0b5fff"
       },
       "package": "com.propkeep.mobile"
     },
     "extra": {
-      "apiUrl": "https://narenthar.pythonanywhere.com"
+      "apiUrl": "https://narenthar.pythonanywhere.com",
+      "eas": {
+        "projectId": "8ae6c7e3-53b2-4dcb-85c2-f8bde0413240"
+      }
     }
   }
 }
