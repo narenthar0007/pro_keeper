@@ -46,6 +46,11 @@ urlpatterns = [
     path('staff/users/create/', admin_panel.staff_create_user, name='staff_create_user'),
     path('staff/users/<int:user_id>/', admin_panel.staff_user_detail, name='staff_user_detail'),
     path('staff/users/<int:user_id>/toggle/', admin_panel.staff_user_toggle, name='staff_user_toggle'),
+    path(
+        'staff/users/<int:user_id>/privileges/',
+        admin_panel.staff_user_privilege_edit,
+        name='staff_user_privilege_edit',
+    ),
     path('staff/logs/', admin_panel.staff_activity_logs, name='staff_activity_logs'),
     path('staff/table/<str:table>/', admin_panel.staff_table, name='staff_table'),
     path('staff/privileges/', admin_panel.staff_privileges, name='staff_privileges'),

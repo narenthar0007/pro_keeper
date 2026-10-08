@@ -4,8 +4,13 @@
 {% block title %}User privileges — Admin{% endblock %}
 
 {% block content %}
+{% if from_user_detail and user_detail_href %}
+<p class="meta"><a href="{{ user_detail_href }}">← Back to {{ target.username }}</a></p>
+{% endif %}
 {% ui_page_header page_header %}
+{% if not from_user_detail %}
 {% include "accounts/admin/_privileges_subnav.html" %}
+{% endif %}
 
 <section class="panel">
   {% ui_heading text="Select user" level=2 %}
@@ -23,7 +28,7 @@
     </label>
   </form>
   {% if target %}
-  <p class="meta">Role: <strong>{{ role_label }}</strong>. Checkboxes match modules for this role; saved values override the role defaults for this login only.</p>
+  <p class="meta">Role: <strong>{{ role_label }}</strong>. Each checkbox is a screen or module. <strong>Unchecked</strong> items are removed from the user’s menu and they cannot open those pages.</p>
   {% else %}
   <p class="meta">Pick a user to view and edit module access.</p>
   {% endif %}
@@ -48,7 +53,7 @@
     </div>
   </section>
   <div class="actions">
-    {% ui_button label="Save user privileges" variant="primary" type="submit" %}
+    {% ui_button label="Save modules & privileges" variant="primary" type="submit" %}
     <button type="submit" name="action" value="reset" class="btn btn-secondary">Reset to role defaults</button>
   </div>
 </form>

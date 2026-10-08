@@ -541,6 +541,8 @@ def staff_user_detail(request, user_id):
                     },
                 ]
             ),
+            'can_edit_privileges': _user_can_edit_privileges(target),
+            'privileges_href': reverse('staff_user_privilege_edit', args=[target.pk]),
         },
     )
 
@@ -770,19 +772,30 @@ def _privileges_admin_context():
     }
 
 
-def _assignable_privilege_users():
-    return (
-        User.objects.filter(
-            profile__role__in=(
-                UserProfile.ROLE_OWNER,
-                UserProfile.ROLE_TENANT,
-                UserProfile.ROLE_MANAGER,
-                UserProfile.ROLE_EMPLOYEE,
-            ),
-            is_active=True,
-        )
-        .select_related('profile')
-        .order_by('username')
+def _assignable_privilege_users(brand=None):
+    qs = User.objects.filter(
+        profile__role__in=(
+            UserProfile.ROLE_OWNER,
+            UserProfile.ROLE_TENANT,
+            UserProfile.ROLE_MANAGER,
+            UserProfile.ROLE_EMPLOYEE,
+        ),
+        is_active=True,
+    ).select_related('profile')
+    if brand is not None:
+        qs = qs.filter(profile__brand=brand)
+    return qs.order_by('username')
+
+
+def _user_can_edit_privileges(target):
+    if target.is_superuser or target.is_staff:
+        return False
+    role = get_user_role(target)
+    return role in (
+        UserProfile.ROLE_OWNER,
+        UserProfile.ROLE_TENANT,
+        UserProfile.ROLE_MANAGER,
+        UserProfile.ROLE_EMPLOYEE,
     )
 
 
@@ -854,19 +867,40 @@ def staff_privileges(request):
     )
 
 
+def _staff_user_privileges_redirect(target):
+    return redirect('staff_user_privilege_edit', user_id=target.pk)
+
+
+@admin_required
+def staff_user_privilege_edit(request, user_id):
+    return _staff_user_privileges_core(request, preset_user_id=user_id)
+
+
 @admin_required
 def staff_user_privileges(request):
+    return _staff_user_privileges_core(request, preset_user_id=None)
+
+
+def _staff_user_privileges_core(request, preset_user_id=None):
     ensure_default_privileges()
-    users = _assignable_privilege_users()
-    user_id = (request.GET.get('user') or request.POST.get('user_id') or '').strip()
+    brand = get_request_brand(request)
+    users = _assignable_privilege_users(brand)
+    if preset_user_id is not None:
+        user_id = str(preset_user_id)
+    else:
+        user_id = (request.GET.get('user') or request.POST.get('user_id') or '').strip()
     target = None
     role = None
     privilege_rows = []
     effective = {}
     form = None
+    from_user_detail = preset_user_id is not None
 
     if user_id:
-        target = get_object_or_404(User, pk=user_id)
+        target = get_object_or_404(users_for_brand(brand).select_related('profile'), pk=user_id)
+        if not _user_can_edit_privileges(target):
+            messages.error(request, 'Privileges cannot be customized for staff or admin logins.')
+            return redirect('staff_user_detail', user_id=target.pk)
         role, privilege_rows, effective = _effective_user_privileges(target)
         role_privs = RolePrivilege.objects.filter(role=role)
 
@@ -879,7 +913,7 @@ def staff_user_privileges(request):
                     message=f'Reset user privileges to role defaults: {target.username}',
                 )
                 messages.success(request, 'User privileges reset to role defaults.')
-                return redirect(f'{reverse("staff_user_privileges")}?user={target.pk}')
+                return _staff_user_privileges_redirect(target)
 
             form = UserPrivilegeToggleForm(role_privs, effective, request.POST)
             if form.is_valid():
@@ -895,16 +929,24 @@ def staff_user_privileges(request):
                     action='update',
                     message=f'Updated user privileges: {target.username}',
                 )
-                messages.success(request, 'User privileges saved.')
-                return redirect(f'{reverse("staff_user_privileges")}?user={target.pk}')
+                messages.success(
+                    request,
+                    'Saved. Unchecked modules are hidden in the header and blocked for this user.',
+                )
+                return _staff_user_privileges_redirect(target)
         else:
             form = UserPrivilegeToggleForm(role_privs, effective)
 
+    subtitle = (
+        f'Choose which screens and modules {target.username} can see. Unchecked items are hidden and blocked.'
+        if target
+        else 'Pick a user to control which screens and modules they can access.'
+    )
     return render(
         request,
         'accounts/admin/user_privileges.html',
         {
-            **_admin_context('privileges'),
+            **_admin_context('privileges' if not from_user_detail else 'users'),
             **_privileges_admin_context(),
             'privileges_active_tab': 'user',
             'users': users,
@@ -914,9 +956,11 @@ def staff_user_privileges(request):
             'role_label': target.profile.get_role_display() if target and getattr(target, 'profile', None) else '',
             'privilege_rows': privilege_rows,
             'form': form,
+            'from_user_detail': from_user_detail,
+            'user_detail_href': reverse('staff_user_detail', args=[target.pk]) if target else '',
             'page_header': build_page_header(
-                'User-based privileges',
-                subtitle='Grant or restrict module access for a single login, on top of their role.',
+                f'Modules & privileges — {target.username}' if target else 'User-based privileges',
+                subtitle=subtitle,
             ),
         },
     )

@@ -10,8 +10,13 @@
 
 <section class="panel">
   {% ui_heading text="Set role & access" level=2 %}
-  <p class="meta"><a href="{% url 'staff_user_privileges' %}?user={{ target.pk }}">Edit user-based module privileges</a></p>
+  {% if can_edit_privileges %}
+  <p class="meta">Use <strong>Privileges</strong> to choose which screens and modules this user sees in the app (header links and pages).</p>
+  {% endif %}
   <div class="actions">
+    {% if can_edit_privileges %}
+    {% ui_button label="Privileges" href=privileges_href variant="primary" size="sm" %}
+    {% endif %}
     <form method="post" action="{% url 'staff_user_toggle' target.pk %}">{% csrf_token %}<input type="hidden" name="action" value="role_owner">{% ui_button label="Make Owner" variant="secondary" size="sm" type="submit" %}</form>
     <form method="post" action="{% url 'staff_user_toggle' target.pk %}">{% csrf_token %}<input type="hidden" name="action" value="role_tenant">{% ui_button label="Make Tenant" variant="secondary" size="sm" type="submit" %}</form>
     <form method="post" action="{% url 'staff_user_toggle' target.pk %}">{% csrf_token %}<input type="hidden" name="action" value="role_admin">{% ui_button label="Make Admin" variant="primary" size="sm" type="submit" %}</form>
