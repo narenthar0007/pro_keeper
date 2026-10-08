@@ -1,17 +1,17 @@
-# EAS uploads the git repo; keep archive small (Expo app is in mobile/)
-__pycache__/
-*.py[cod]
-.venv/
-venv/
-staticfiles/
-media/
-db.sqlite3
-.git/
+# Monorepo: upload only the Expo app (avoids tar errors on Django files / OneDrive paths)
+/*
+!/mobile
+!/mobile/**
 
-mobile/node_modules/
-mobile/dist/
-mobile/eas-archive-test/
+# Still skip heavy/local mobile paths
+mobile/node_modules
+mobile/dist
+mobile/.expo
+mobile/eas-archive-test
+mobile/eas-inspect
 mobile/eas-log.bin
+mobile/eas-log2.bin
+mobile/eas-inspect
+mobile/eas-build-log.txt
 mobile/eas-recent.json
-mobile/eas-last-build.json
-
+mobile/eas-last-build.json
