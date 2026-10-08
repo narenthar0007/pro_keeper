@@ -4,6 +4,7 @@ from datetime import datetime
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -64,6 +65,29 @@ from hrms.services.scoping import (
 from hrms.services.users import ensure_employee_login
 
 
+def _sync_employee_login_from_form(form, employee, *, brand, created_by):
+    """Create, update, or remove login based on Can login fields."""
+    if form.cleaned_data.get('can_login'):
+        try:
+            return ensure_employee_login(
+                employee,
+                role=UserProfile.ROLE_EMPLOYEE,
+                brand=brand,
+                created_by=created_by,
+                username=(form.cleaned_data.get('login_username') or '').strip() or None,
+                password=form.cleaned_data.get('login_password') or None,
+            )
+        except ValueError as exc:
+            raise ValidationError(str(exc))
+    if employee.user_id:
+        user = employee.user
+        employee.user = None
+        employee.save(update_fields=['user'])
+        user.is_active = False
+        user.save(update_fields=['is_active'])
+    return None
+
+
 def _properties_qs(owner):
     try:
         from properties.models import Property
@@ -79,16 +103,29 @@ def hrms_dashboard(request):
     attendance = attendance_for_user(request.user, request)
     sites = sites_for_user(request.user, request)
     today = timezone.localdate()
-    present_today = attendance.filter(date=today, status=Attendance.STATUS_PRESENT).count()
-    pending_emps = employees.filter(approval_status=Employee.APPROVAL_PENDING).count()
-    pending_reg = attendance.filter(approval_status=Attendance.APPROVAL_PENDING).count()
+    emp_stats = employees.aggregate(
+        total=Count('pk'),
+        pending=Count('pk', filter=Q(approval_status=Employee.APPROVAL_PENDING)),
+    )
+    att_stats = attendance.aggregate(
+        pending_reg=Count('pk', filter=Q(approval_status=Attendance.APPROVAL_PENDING)),
+        present_today=Count(
+            'pk',
+            filter=Q(date=today, status=Attendance.STATUS_PRESENT),
+        ),
+    )
+    site_count = sites.count()
 
     kpis = build_kpis(
         [
-            {'label': 'Employees', 'value': employees.count()},
-            {'label': 'Sites', 'value': sites.count()},
-            {'label': 'Present today', 'value': present_today},
-            {'label': 'Pending approvals', 'value': pending_emps + pending_reg, 'tone': 'warn'},
+            {'label': 'Employees', 'value': emp_stats['total']},
+            {'label': 'Sites', 'value': site_count},
+            {'label': 'Present today', 'value': att_stats['present_today']},
+            {
+                'label': 'Pending approvals',
+                'value': emp_stats['pending'] + att_stats['pending_reg'],
+                'tone': 'warn',
+            },
         ]
     )
     page_header = build_page_header(
@@ -143,7 +180,13 @@ def employee_list(request):
 
     show_punch_columns = role == UserProfile.ROLE_MANAGER
     today = timezone.localdate()
-    subtitle = f'{qs.count()} people in scope'
+    stats = qs.aggregate(
+        total=Count('pk'),
+        pending=Count('pk', filter=Q(approval_status=Employee.APPROVAL_PENDING)),
+        approved=Count('pk', filter=Q(approval_status=Employee.APPROVAL_APPROVED)),
+    )
+    employee_list = list(qs)
+    subtitle = f'{stats["total"]} people in scope'
     if show_punch_columns:
         subtitle += f' · Punch in/out for {today.strftime("%d %b %Y")}'
 
@@ -159,30 +202,24 @@ def employee_list(request):
     )
     kpis = build_kpis(
         [
-            {'label': 'Total', 'value': qs.count()},
-            {
-                'label': 'Pending',
-                'value': qs.filter(approval_status=Employee.APPROVAL_PENDING).count(),
-                'tone': 'warn',
-            },
-            {
-                'label': 'Approved',
-                'value': qs.filter(approval_status=Employee.APPROVAL_APPROVED).count(),
-            },
+            {'label': 'Total', 'value': stats['total']},
+            {'label': 'Pending', 'value': stats['pending'], 'tone': 'warn'},
+            {'label': 'Approved', 'value': stats['approved']},
         ]
     )
     attendance_today = {}
-    if show_punch_columns:
+    if show_punch_columns and employee_list:
+        employee_ids = [e.pk for e in employee_list]
         attendance_today = {
             row.employee_id: row
             for row in attendance_for_user(request.user, request).filter(
                 date=today,
-                employee_id__in=qs.values('pk'),
+                employee_id__in=employee_ids,
             )
         }
 
     rows = []
-    for e in qs:
+    for e in employee_list:
         att = attendance_today.get(e.pk) if show_punch_columns else None
         punch_in = att.punch_in.strftime('%H:%M') if att and att.punch_in else '—'
         punch_out = att.punch_out.strftime('%H:%M') if att and att.punch_out else '—'
@@ -260,13 +297,30 @@ def employee_create(request):
             emp.created_by = request.user
             emp.approval_status = Employee.APPROVAL_PENDING
             emp.save()
-            ensure_employee_login(emp, role=UserProfile.ROLE_EMPLOYEE, brand=brand, created_by=request.user)
-            messages.success(request, f'Employee {emp.emp_code} created (Pending approval).')
+            login_user = None
+            try:
+                login_user = _sync_employee_login_from_form(
+                    form, emp, brand=brand, created_by=request.user
+                )
+            except ValidationError as exc:
+                messages.error(request, str(exc))
+                return render(
+                    request,
+                    'hrms/form_page.html',
+                    {'page_header': build_page_header(title='Add employee'), 'form': form},
+                )
+            msg = f'Employee {emp.emp_code} created (Pending approval).'
+            if login_user:
+                msg += f' Login username: {login_user.username}. They can sign in after approval.'
+            messages.success(request, msg)
             return redirect('hrms_employees')
     else:
         form = EmployeeForm(owner=owner, sites_qs=sites)
 
-    page_header = build_page_header(title='Add employee', subtitle='Starts as Pending until owner approves')
+    page_header = build_page_header(
+        title='Add employee',
+        subtitle='Starts as Pending until owner approves. Enable Can login to set username and password.',
+    )
     return render(request, 'hrms/form_page.html', {'page_header': page_header, 'form': form})
 
 
@@ -278,8 +332,19 @@ def employee_edit(request, pk):
     if request.method == 'POST':
         form = EmployeeForm(request.POST, instance=emp, owner=emp.owner, sites_qs=sites)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Employee updated.')
+            emp = form.save()
+            brand = get_request_brand(request)
+            try:
+                login_user = _sync_employee_login_from_form(
+                    form, emp, brand=brand, created_by=request.user
+                )
+            except ValidationError as exc:
+                messages.error(request, str(exc))
+                return redirect('hrms_employee_edit', pk=emp.pk)
+            msg = 'Employee updated.'
+            if login_user:
+                msg += f' Login: {login_user.username}.'
+            messages.success(request, msg)
             return redirect('hrms_employees')
     else:
         form = EmployeeForm(instance=emp, owner=emp.owner, sites_qs=sites)
@@ -386,12 +451,10 @@ def manager_create(request):
                     emp,
                     role=UserProfile.ROLE_MANAGER,
                     brand=brand,
+                    username=data.get('username') or None,
                     password=data.get('password') or None,
                     created_by=request.user,
                 )
-                if data.get('username'):
-                    user.username = data['username']
-                    user.save(update_fields=['username'])
                 site = data.get('default_site')
                 if site:
                     SiteAssignment.objects.get_or_create(site=site, manager=user)
@@ -512,21 +575,27 @@ def site_detail(request, pk):
 
 @hrms_login_required
 def attendance_list(request):
-    qs = attendance_for_user(request.user, request)
+    qs = attendance_for_user(request.user, request).order_by('-date', '-id')
     role = get_user_role(request.user)
-    actions = [
-        build_button('Punch', href=reverse('hrms_punch'), variant='primary'),
-    ]
+    is_employee = role == UserProfile.ROLE_EMPLOYEE
+    att_total = qs.count()
+    actions = []
+    if role in (UserProfile.ROLE_EMPLOYEE, UserProfile.ROLE_MANAGER) or is_admin_user(request.user):
+        actions.append(build_button('Punch', href=reverse('hrms_punch'), variant='primary'))
     if role in (UserProfile.ROLE_OWNER, UserProfile.ROLE_MANAGER) or is_admin_user(request.user):
         actions.append(build_button('Mark attendance', href=reverse('hrms_attendance_mark'), variant='secondary'))
-    actions.append(build_button('Regularize', href=reverse('hrms_regularize'), variant='secondary'))
-    actions.append(build_button('Export CSV', href=reverse('hrms_attendance_export'), variant='secondary'))
+    if is_employee or role in (UserProfile.ROLE_MANAGER, UserProfile.ROLE_OWNER) or is_admin_user(request.user):
+        actions.append(build_button('Regularize', href=reverse('hrms_regularize'), variant='secondary'))
+    if not is_employee:
+        actions.append(build_button('Export CSV', href=reverse('hrms_attendance_export'), variant='secondary'))
 
-    page_header = build_page_header(title='Attendance', subtitle=f'{qs.count()} records', actions=actions)
-    rows = [
-        {
+    title = 'My attendance' if is_employee else 'Attendance'
+    subtitle = f'{att_total} records' if not is_employee else f'{att_total} of your records'
+    page_header = build_page_header(title=title, subtitle=subtitle, actions=actions)
+    rows = []
+    for a in qs[:100]:
+        row = {
             'date': a.date.strftime('%d %b %Y'),
-            'employee': a.employee.name,
             'status': a.status,
             'in': a.punch_in.strftime('%H:%M') if a.punch_in else '—',
             'out': a.punch_out.strftime('%H:%M') if a.punch_out else '—',
@@ -534,22 +603,28 @@ def attendance_list(request):
             'reg': a.regularized,
             'approval': a.approval_status,
         }
-        for a in qs[:200]
-    ]
-    table = build_table(
-        id='hrms-attendance',
-        columns=[
-            {'key': 'date', 'label': 'Date'},
-            {'key': 'employee', 'label': 'Employee'},
+        if not is_employee:
+            row['employee'] = a.employee.name
+        rows.append(row)
+
+    columns = [{'key': 'date', 'label': 'Date'}]
+    if not is_employee:
+        columns.append({'key': 'employee', 'label': 'Employee'})
+    columns.extend(
+        [
             {'key': 'status', 'label': 'Status', 'badge': True},
             {'key': 'in', 'label': 'In'},
             {'key': 'out', 'label': 'Out'},
             {'key': 'hours', 'label': 'Hours'},
             {'key': 'reg', 'label': 'Regularized'},
             {'key': 'approval', 'label': 'Reg. approval', 'badge': True},
-        ],
+        ]
+    )
+    table = build_table(
+        id='hrms-attendance',
+        columns=columns,
         rows=rows,
-        empty_text='No attendance records.',
+        empty_text='No attendance records yet.',
     )
     return render(request, 'hrms/list_page.html', {'page_header': page_header, 'table': table, 'kpis': None})
 
@@ -651,6 +726,8 @@ def regularize_view(request):
                     request=request,
                 )
                 messages.success(request, 'Regularize request submitted (Pending owner approval).')
+                if role == UserProfile.ROLE_EMPLOYEE:
+                    return redirect('hrms_attendance')
                 return redirect('hrms_approvals')
             except ValidationError as exc:
                 messages.error(request, str(exc))

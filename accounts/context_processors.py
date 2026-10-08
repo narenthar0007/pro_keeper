@@ -1,5 +1,16 @@
 from .brands import resolve_brand
 from .nav import get_nav_items, show_quick_add, uses_hrms_workspace
+
+_HRMS_PRIV_DEFAULTS = {
+    'can_access_hrms': True,
+    'can_view_dashboard': False,
+    'can_view_reports': False,
+    'can_view_enquiries': False,
+    'can_view_tenant_portal': False,
+    'can_view_settings': False,
+    'can_view_inbox': False,
+    'can_manage_rent_reminders': False,
+}
 from .privileges import get_user_role, has_privilege, is_admin_user
 from .brand_scoping import get_request_brand
 
@@ -80,12 +91,13 @@ def site_theme_and_role(request):
         except Exception:
             return admin
 
+    hrms_light = bool(user.is_authenticated and uses_hrms_workspace(role))
     unread = 0
     unread_inbox = 0
     pending_collab_invites = 0
     open_complaints = 0
     property_count = 0
-    if user.is_authenticated:
+    if user.is_authenticated and not hrms_light:
         try:
             from properties.models import Complaint, Enquiry, Property, UserNotification
 
@@ -154,14 +166,20 @@ def site_theme_and_role(request):
         'is_tenant_user': role == 'tenant',
         'is_manager_user': role == 'manager',
         'is_employee_user': role == 'employee',
-        'can_access_hrms': priv('hrms_access'),
-        'can_view_dashboard': priv('view_dashboard'),
-        'can_view_reports': priv('view_reports'),
-        'can_view_enquiries': priv('view_enquiries'),
-        'can_view_tenant_portal': priv('view_tenant_portal'),
-        'can_view_settings': priv('view_settings'),
-        'can_view_inbox': priv('view_inbox'),
-        'can_manage_rent_reminders': priv('manage_rent_reminders'),
+        **(
+            _HRMS_PRIV_DEFAULTS
+            if hrms_light
+            else {
+                'can_access_hrms': priv('hrms_access'),
+                'can_view_dashboard': priv('view_dashboard'),
+                'can_view_reports': priv('view_reports'),
+                'can_view_enquiries': priv('view_enquiries'),
+                'can_view_tenant_portal': priv('view_tenant_portal'),
+                'can_view_settings': priv('view_settings'),
+                'can_view_inbox': priv('view_inbox'),
+                'can_manage_rent_reminders': priv('manage_rent_reminders'),
+            }
+        ),
         'unread_enquiries_count': unread,
         'unread_inbox_count': unread_inbox,
         'pending_collab_invites_count': pending_collab_invites,

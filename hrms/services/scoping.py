@@ -95,7 +95,7 @@ def employees_for_user(user, request=None):
 
 
 def attendance_for_user(user, request=None):
-    qs = Attendance.objects.select_related('employee', 'site', 'owner')
+    qs = Attendance.objects.select_related('employee', 'employee__user', 'site', 'owner')
     if is_admin_user(user):
         brand = get_request_brand(request) if request else None
         if brand:

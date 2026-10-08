@@ -22,6 +22,7 @@ def ensure_employee_login(
     *,
     role: str,
     brand=None,
+    username: str | None = None,
     password: str | None = None,
     created_by=None,
 ) -> User:
@@ -36,17 +37,26 @@ def ensure_employee_login(
     with transaction.atomic():
         if employee.user_id:
             user = employee.user
+            new_username = (username or '').strip()
+            if new_username and new_username != user.username:
+                if User.objects.filter(username=new_username).exclude(pk=user.pk).exists():
+                    raise ValueError('Username already exists.')
+                user.username = new_username
+                user.save(update_fields=['username'])
             if password:
                 user.set_password(password)
                 user.save(update_fields=['password'])
         else:
-            username = username_base
+            if (username or '').strip():
+                login_name = username.strip()[:150]
+            else:
+                login_name = username_base
             n = 1
-            while User.objects.filter(username=username).exists():
-                username = f'{username_base}{n}'
+            while User.objects.filter(username=login_name).exists():
+                login_name = f'{chosen}{n}'
                 n += 1
             user = User.objects.create_user(
-                username=username,
+                username=login_name,
                 email=employee.email or '',
                 password=pwd,
             )

@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.db.models.signals import post_save
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 from .media_paths import brand_banner_upload, brand_icon_upload, brand_logo_upload, user_avatar_upload
@@ -138,6 +138,20 @@ class UserPrivilege(models.Model):
     def __str__(self):
         state = 'ON' if self.enabled else 'OFF'
         return f'{self.user_id}.{self.code} [{state}]'
+
+
+def _clear_privilege_cache_for_user(user):
+    if user is None:
+        return
+    for attr in ('_privilege_maps', '_cached_role'):
+        if hasattr(user, attr):
+            delattr(user, attr)
+
+
+@receiver(post_save, sender=UserPrivilege)
+@receiver(post_delete, sender=UserPrivilege)
+def user_privilege_changed(sender, instance, **kwargs):
+    _clear_privilege_cache_for_user(instance.user)
 
 
 class Brand(models.Model):
@@ -373,6 +387,8 @@ DEFAULT_PRIVILEGES = [
 
 
 def ensure_default_privileges():
+    if RolePrivilege.objects.filter(role=UserProfile.ROLE_OWNER, code='view_dashboard').exists():
+        return
     for role, code, label, enabled in DEFAULT_PRIVILEGES:
         RolePrivilege.objects.get_or_create(
             role=role,

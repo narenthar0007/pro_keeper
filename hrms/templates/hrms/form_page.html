@@ -6,6 +6,9 @@
 {% block content %}
 {% ui_page_header page_header %}
 {% if extra_note %}<p class="meta">{{ extra_note }}</p>{% endif %}
+{% if 'can_login' in form.fields %}
+<p class="meta">If <strong>Can login</strong> is enabled, set username and password. Employee must be <strong>Approved</strong> before punch in/out works.</p>
+{% endif %}
 <section class="panel">
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}

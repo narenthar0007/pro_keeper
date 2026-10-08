@@ -163,7 +163,8 @@ def get_nav_items(user, current_path='', brand=None):
     hrms_workspace = uses_hrms_workspace(role)
     pending_marketing_invites = 0
     unread_inbox = 0
-    if user.is_authenticated and brand is not None:
+    hrms_access_ok = None
+    if user.is_authenticated and brand is not None and not hrms_workspace:
         try:
             from properties.marketing_permissions import pending_collaboration_invites_count
 
@@ -178,9 +179,22 @@ def get_nav_items(user, current_path='', brand=None):
             ).count()
         except Exception:
             unread_inbox = 0
+    elif hrms_workspace and user.is_authenticated:
+        try:
+            from hrms.services.scoping import user_can_access_hrms
+
+            hrms_access_ok = user_can_access_hrms(user) or is_admin_user(user)
+        except Exception:
+            hrms_access_ok = False
 
     for raw in NAV_CATALOG:
         if hrms_workspace and not raw['key'].startswith('hrms'):
+            continue
+        if role == UserProfile.ROLE_EMPLOYEE and raw['key'] in (
+            'hrms_employees',
+            'hrms_sites',
+            'hrms_approvals',
+        ):
             continue
         if not user.is_authenticated and raw['key'] != 'browse':
             continue
@@ -197,12 +211,14 @@ def get_nav_items(user, current_path='', brand=None):
         if raw['key'].startswith('hrms'):
             if not user.is_authenticated:
                 continue
-            try:
-                from hrms.services.scoping import user_can_access_hrms
+            if hrms_access_ok is None:
+                try:
+                    from hrms.services.scoping import user_can_access_hrms
 
-                if not user_can_access_hrms(user) and not is_admin_user(user):
-                    continue
-            except Exception:
+                    hrms_access_ok = user_can_access_hrms(user) or is_admin_user(user)
+                except Exception:
+                    hrms_access_ok = False
+            if not hrms_access_ok:
                 continue
             # Managers/employees: show HRMS items; hide rental-heavy items already gated by privilege
             if role in (UserProfile.ROLE_MANAGER, UserProfile.ROLE_EMPLOYEE):

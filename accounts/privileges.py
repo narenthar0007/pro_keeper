@@ -9,29 +9,53 @@ from .models import RolePrivilege, UserPrivilege, UserProfile, ensure_default_pr
 def get_user_role(user):
     if not user.is_authenticated:
         return None
+    cached = getattr(user, '_cached_role', None)
+    if cached is not None:
+        return cached
     if user.is_superuser or user.is_staff:
-        return UserProfile.ROLE_ADMIN
+        user._cached_role = UserProfile.ROLE_ADMIN
+        return user._cached_role
     profile = getattr(user, 'profile', None)
     if profile is None:
-        profile, _ = UserProfile.objects.get_or_create(
-            user=user,
-            defaults={'role': UserProfile.ROLE_OWNER},
-        )
+        profile = UserProfile.objects.filter(user=user).first()
+        if profile is None:
+            profile, _ = UserProfile.objects.get_or_create(
+                user=user,
+                defaults={'role': UserProfile.ROLE_OWNER},
+            )
+    user._cached_role = profile.role
     return profile.role
+
+
+def _load_privilege_maps(user):
+    cached = getattr(user, '_privilege_maps', None)
+    if cached is not None:
+        return cached
+    ensure_default_privileges()
+    role = get_user_role(user)
+    overrides = {
+        row.code: row.enabled for row in UserPrivilege.objects.filter(user=user).only('code', 'enabled')
+    }
+    role_privs = {}
+    if role in (
+        UserProfile.ROLE_OWNER,
+        UserProfile.ROLE_TENANT,
+        UserProfile.ROLE_MANAGER,
+        UserProfile.ROLE_EMPLOYEE,
+    ):
+        role_privs = {
+            row.code: row.enabled
+            for row in RolePrivilege.objects.filter(role=role).only('code', 'enabled')
+        }
+    cached = (overrides, role_privs)
+    user._privilege_maps = cached
+    return cached
 
 
 def is_admin_user(user):
     return user.is_authenticated and (
         user.is_superuser or user.is_staff or get_user_role(user) == UserProfile.ROLE_ADMIN
     )
-
-
-def _role_has_privilege(role, code):
-    ensure_default_privileges()
-    priv = RolePrivilege.objects.filter(role=role, code=code).first()
-    if priv is None:
-        return False
-    return priv.enabled
 
 
 def has_privilege(user, code):
@@ -47,10 +71,10 @@ def has_privilege(user, code):
         UserProfile.ROLE_EMPLOYEE,
     ):
         return False
-    override = UserPrivilege.objects.filter(user=user, code=code).first()
-    if override is not None:
-        return override.enabled
-    return _role_has_privilege(role, code)
+    overrides, role_privs = _load_privilege_maps(user)
+    if code in overrides:
+        return overrides[code]
+    return role_privs.get(code, False)
 
 
 def list_privilege_codes_for_user(user):
@@ -68,16 +92,11 @@ def list_privilege_codes_for_user(user):
         UserProfile.ROLE_EMPLOYEE,
     ):
         return []
-    ensure_default_privileges()
-    role_privs = RolePrivilege.objects.filter(role=role)
-    overrides = {
-        row.code: row.enabled
-        for row in UserPrivilege.objects.filter(user=user, code__in=role_privs.values('code'))
-    }
+    overrides, role_privs = _load_privilege_maps(user)
     enabled_codes = []
-    for priv in role_privs:
-        if overrides.get(priv.code, priv.enabled):
-            enabled_codes.append(priv.code)
+    for code, enabled in role_privs.items():
+        if overrides.get(code, enabled):
+            enabled_codes.append(code)
     return enabled_codes
 
 

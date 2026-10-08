@@ -14,6 +14,23 @@ from hrms.models import (
 
 
 class EmployeeForm(forms.ModelForm):
+    can_login = forms.BooleanField(
+        required=False,
+        initial=False,
+        label='Can login',
+        help_text='Allow this employee to sign in, punch in/out, apply regularize, and view their attendance.',
+    )
+    login_username = forms.CharField(
+        max_length=150,
+        required=False,
+        label='Login username',
+    )
+    login_password = forms.CharField(
+        required=False,
+        label='Login password',
+        widget=forms.PasswordInput(render_value=True),
+    )
+
     class Meta:
         model = Employee
         fields = [
@@ -50,6 +67,58 @@ class EmployeeForm(forms.ModelForm):
         elif owner is not None:
             self.fields['default_site'].queryset = Site.objects.filter(owner=owner)
         self.fields['default_site'].required = False
+        if self.instance.pk and self.instance.user_id:
+            self.fields['can_login'].initial = True
+            self.fields['login_username'].initial = self.instance.user.username
+        self.order_fields(
+            [
+                'emp_code',
+                'name',
+                'mobile',
+                'joining_date',
+                'job_role',
+                'team',
+                'leader',
+                'gender',
+                'company_name',
+                'employment_type',
+                'status',
+                'email',
+                'emergency',
+                'address',
+                'remarks',
+                'latitude',
+                'longitude',
+                'default_site',
+                'is_not_working',
+                'can_login',
+                'login_username',
+                'login_password',
+            ]
+        )
+
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get('can_login'):
+            return cleaned
+        username = (cleaned.get('login_username') or '').strip()
+        if not username:
+            username = (cleaned.get('emp_code') or '').strip()
+            cleaned['login_username'] = username
+        if not username:
+            self.add_error('login_username', 'Enter a username or employee code.')
+        else:
+            existing_pk = self.instance.user_id if self.instance.pk else None
+            clash = User.objects.filter(username=username)
+            if existing_pk:
+                clash = clash.exclude(pk=existing_pk)
+            if clash.exists():
+                self.add_error('login_username', 'Username already exists.')
+        password = cleaned.get('login_password') or ''
+        is_new_login = not (self.instance.pk and self.instance.user_id)
+        if is_new_login and not password:
+            self.add_error('login_password', 'Password is required when Can login is enabled.')
+        return cleaned
 
 
 class ManagerCreateForm(forms.Form):
