@@ -1,0 +1,17 @@
+# EAS uploads the git repo; keep archive small (Expo app is in mobile/)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+staticfiles/
+media/
+db.sqlite3
+.git/
+
+mobile/node_modules/
+mobile/dist/
+mobile/eas-archive-test/
+mobile/eas-log.bin
+mobile/eas-recent.json
+mobile/eas-last-build.json
+

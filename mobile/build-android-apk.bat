@@ -12,19 +12,35 @@ if not exist "node_modules\" (
   if errorlevel 1 goto :fail
 )
 
-echo Checking JavaScript bundle (same step EAS runs)...
+echo Checking JavaScript bundle...
 call npm.cmd run verify:bundle
 if errorlevel 1 (
   echo Bundle failed locally — fix errors above before cloud build.
   goto :fail
 )
 
+cd /d "%~dp0.."
+git diff --quiet mobile/
+if errorlevel 1 (
+  echo.
+  echo WARNING: You have uncommitted changes under mobile/
+  echo EAS uploads from GIT — commit and push first, or the cloud build will use old code.
+  echo   git add mobile
+  echo   git commit -m "mobile update"
+  echo   git push
+  echo.
+  pause
+)
+
+cd /d "%~dp0"
+
 echo.
-echo Uploading THIS folder to EAS (EAS_NO_VCS=1), not only last git commit.
-echo Queue can take 30-45 min on free tier; build ~10-20 min after that.
+echo Starting EAS cloud build (uses git repo; app path: mobile/)
+echo Queue can take 30-45 min on free tier.
+echo.
+echo Do NOT set EAS_NO_VCS=1 — this repo is a monorepo and EAS needs mobile/ inside the archive.
 echo.
 
-set EAS_NO_VCS=1
 call npx.cmd eas build --platform android --profile preview --non-interactive --clear-cache
 if errorlevel 1 goto :fail
 
@@ -35,8 +51,7 @@ exit /b 0
 
 :fail
 echo.
-echo If cloud build failed, open the build on expo.dev and expand
-echo "Bundle JavaScript" or "Run gradlew" for the real error.
+echo On expo.dev open the build and check failed phases above "Build complete hook".
 pause
 exit /b 1
 
