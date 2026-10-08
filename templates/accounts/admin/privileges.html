@@ -5,6 +5,7 @@
 
 {% block content %}
 {% ui_page_header page_header %}
+{% include "accounts/admin/_privileges_subnav.html" %}
 
 <form method="post">
   {% csrf_token %}

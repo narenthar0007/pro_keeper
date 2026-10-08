@@ -1,0 +1,56 @@
+{% extends "accounts/admin/base_admin.html" %}
+{% load ui %}
+
+{% block title %}User privileges — Admin{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+{% include "accounts/admin/_privileges_subnav.html" %}
+
+<section class="panel">
+  {% ui_heading text="Select user" level=2 %}
+  <form method="get" class="actions" style="align-items:flex-end; gap:0.75rem; flex-wrap:wrap;">
+    <label>
+      <span class="meta">User</span><br>
+      <select name="user" onchange="this.form.submit()">
+        <option value="">— Choose a user —</option>
+        {% for u in users %}
+        <option value="{{ u.pk }}" {% if selected_user_id == u.pk|stringformat:"s" %}selected{% endif %}>
+          {{ u.username }}{% if u.profile %} ({{ u.profile.get_role_display }}){% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+  </form>
+  {% if target %}
+  <p class="meta">Role: <strong>{{ role_label }}</strong>. Checkboxes match modules for this role; saved values override the role defaults for this login only.</p>
+  {% else %}
+  <p class="meta">Pick a user to view and edit module access.</p>
+  {% endif %}
+</section>
+
+{% if target and form %}
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="user_id" value="{{ target.pk }}">
+  <section class="panel">
+    {% ui_heading text="Module access" level=2 %}
+    <div class="privilege-list">
+      {% for row in privilege_rows %}
+      <label class="privilege-item">
+        <input type="checkbox" name="priv_{{ row.code }}" {% if row.enabled %}checked{% endif %}>
+        <span>
+          <strong>{{ row.label }}</strong><br>
+          <span class="meta">{{ row.code }}{% if row.has_override %} · custom{% else %} · role default{% endif %}</span>
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+  </section>
+  <div class="actions">
+    {% ui_button label="Save user privileges" variant="primary" type="submit" %}
+    <button type="submit" name="action" value="reset" class="btn btn-secondary">Reset to role defaults</button>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

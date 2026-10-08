@@ -10,7 +10,7 @@ from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationFo
 
 from .admin_mixins import BrandScopedModelAdmin
 from .brand_scoping import get_request_brand, users_for_brand
-from .models import ActivityLog, Brand, RolePrivilege, UserProfile
+from .models import ActivityLog, Brand, RolePrivilege, UserPrivilege, UserProfile
 
 admin.site.unregister(User)
 admin.site.unregister(Group)
@@ -80,6 +80,14 @@ class RolePrivilegeAdmin(ModelAdmin):
     list_editable = ('enabled',)
     list_filter_submit = True
     search_fields = ('code', 'label')
+
+
+@admin.register(UserPrivilege)
+class UserPrivilegeAdmin(ModelAdmin):
+    list_display = ('user', 'code', 'label', 'enabled')
+    list_filter = (('enabled', BooleanRadioFilter),)
+    search_fields = ('user__username', 'code', 'label')
+    autocomplete_fields = ('user',)
 
 
 @admin.register(Brand)

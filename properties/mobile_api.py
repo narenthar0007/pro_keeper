@@ -14,7 +14,7 @@ from rest_framework.response import Response
 
 from accounts.brand_scoping import assign_brand, get_request_brand, users_for_brand
 from accounts.models import UserProfile
-from accounts.privileges import get_user_role, has_privilege, is_admin_user
+from accounts.privileges import get_user_role, has_privilege, is_admin_user, list_privilege_codes_for_user
 from .lead_utils import log_lead_activity
 from .mobile_serializers import (
     AmenitySerializer,
@@ -57,16 +57,7 @@ def _need(user, code):
 
 def _user_payload(user):
     role = get_user_role(user)
-    privileges = []
-    if user.is_authenticated:
-        from accounts.models import RolePrivilege
-
-        if is_admin_user(user):
-            privileges = list(RolePrivilege.objects.values_list('code', flat=True).distinct())
-        elif role:
-            privileges = list(
-                RolePrivilege.objects.filter(role=role, enabled=True).values_list('code', flat=True)
-            )
+    privileges = list_privilege_codes_for_user(user) if user.is_authenticated else []
     return {
         'id': user.id,
         'username': user.username,

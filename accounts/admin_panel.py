@@ -27,11 +27,25 @@ from django.utils.safestring import mark_safe
 
 from .brands import SESSION_KEY as BRAND_SESSION_KEY, ensure_default_brands
 from .brand_scoping import filter_by_brand, get_request_brand, users_for_brand
-from .forms import AdminCreateUserForm, BrandForm, GroupForm, PrivilegeToggleForm, SitePromotionForm
+from .forms import (
+    AdminCreateUserForm,
+    BrandForm,
+    GroupForm,
+    PrivilegeToggleForm,
+    SitePromotionForm,
+    UserPrivilegeToggleForm,
+)
 from .logging_utils import log_activity
-from .models import ActivityLog, Brand, RolePrivilege, UserProfile, ensure_default_privileges
+from .models import (
+    ActivityLog,
+    Brand,
+    RolePrivilege,
+    UserPrivilege,
+    UserProfile,
+    ensure_default_privileges,
+)
 from .pagination import PAGE_SIZE, paginate_table, pagination_query
-from .privileges import is_admin_user
+from .privileges import get_user_role, is_admin_user
 from .components import (
     build_alert,
     build_button,
@@ -70,7 +84,7 @@ ADMIN_NAV = [
     {'key': 'campaigns', 'label': 'Campaigns', 'url_name': 'staff_table', 'url_kwargs': {'table': 'campaigns'}},
     {'key': 'promotions', 'label': 'Promotions', 'url_name': 'staff_promotions'},
     {'key': 'logs', 'label': 'Activity logs', 'url_name': 'staff_activity_logs'},
-    {'key': 'privileges', 'label': 'Privileges', 'url_name': 'staff_privileges'},
+    {'key': 'privileges', 'label': 'Roles & privileges', 'url_name': 'staff_privileges'},
     {'key': 'hrms', 'label': 'HRMS subscriptions', 'url_name': 'hrms_settings'},
     {'key': 'brands', 'label': 'Brands', 'url_name': 'staff_brands'},
     {'key': 'theme', 'label': 'Theme settings', 'url_name': 'staff_theme'},
@@ -739,6 +753,67 @@ def staff_table(request, table):
     )
 
 
+def _privileges_admin_context():
+    return {
+        'privileges_subnav': [
+            {
+                'key': 'role',
+                'label': 'Role-based privileges',
+                'url_name': 'staff_privileges',
+            },
+            {
+                'key': 'user',
+                'label': 'User-based privileges',
+                'url_name': 'staff_user_privileges',
+            },
+        ],
+    }
+
+
+def _assignable_privilege_users():
+    return (
+        User.objects.filter(
+            profile__role__in=(
+                UserProfile.ROLE_OWNER,
+                UserProfile.ROLE_TENANT,
+                UserProfile.ROLE_MANAGER,
+                UserProfile.ROLE_EMPLOYEE,
+            ),
+            is_active=True,
+        )
+        .select_related('profile')
+        .order_by('username')
+    )
+
+
+def _effective_user_privileges(target):
+    role = get_user_role(target)
+    role_privs = RolePrivilege.objects.filter(role=role)
+    overrides = {
+        row.code: row
+        for row in UserPrivilege.objects.filter(
+            user=target,
+            code__in=role_privs.values('code'),
+        )
+    }
+    rows = []
+    effective = {}
+    for priv in role_privs:
+        override = overrides.get(priv.code)
+        enabled = override.enabled if override else priv.enabled
+        effective[priv.code] = enabled
+        rows.append(
+            {
+                'code': priv.code,
+                'label': priv.label,
+                'enabled': enabled,
+                'role_default': priv.enabled,
+                'has_override': override is not None,
+            }
+        )
+    return role, rows, effective
+
+
 @admin_required
 def staff_privileges(request):
     ensure_default_privileges()
@@ -764,14 +839,84 @@ def staff_privileges(request):
         'accounts/admin/privileges.html',
         {
             **_admin_context('privileges'),
+            **_privileges_admin_context(),
+            'privileges_active_tab': 'role',
             'form': form,
             'owner_privs': owner_privs,
             'tenant_privs': tenant_privs,
             'manager_privs': manager_privs,
             'employee_privs': employee_privs,
             'page_header': build_page_header(
-                'Role privileges',
-                subtitle='Turn features on/off for Owner, Manager, Employee, and Tenant logins.',
+                'Role-based privileges',
+                subtitle='Turn features on/off for Owner, Manager, Employee, and Tenant roles.',
+            ),
+        },
+    )
+
+
+@admin_required
+def staff_user_privileges(request):
+    ensure_default_privileges()
+    users = _assignable_privilege_users()
+    user_id = (request.GET.get('user') or request.POST.get('user_id') or '').strip()
+    target = None
+    role = None
+    privilege_rows = []
+    effective = {}
+    form = None
+
+    if user_id:
+        target = get_object_or_404(User, pk=user_id)
+        role, privilege_rows, effective = _effective_user_privileges(target)
+        role_privs = RolePrivilege.objects.filter(role=role)
+
+        if request.method == 'POST':
+            if request.POST.get('action') == 'reset':
+                UserPrivilege.objects.filter(user=target).delete()
+                log_activity(
+                    request=request,
+                    action='update',
+                    message=f'Reset user privileges to role defaults: {target.username}',
+                )
+                messages.success(request, 'User privileges reset to role defaults.')
+                return redirect(f'{reverse("staff_user_privileges")}?user={target.pk}')
+
+            form = UserPrivilegeToggleForm(role_privs, effective, request.POST)
+            if form.is_valid():
+                for priv in role_privs:
+                    enabled = form.cleaned_data.get(f'priv_{priv.code}', False)
+                    UserPrivilege.objects.update_or_create(
+                        user=target,
+                        code=priv.code,
+                        defaults={'enabled': enabled, 'label': priv.label},
+                    )
+                log_activity(
+                    request=request,
+                    action='update',
+                    message=f'Updated user privileges: {target.username}',
+                )
+                messages.success(request, 'User privileges saved.')
+                return redirect(f'{reverse("staff_user_privileges")}?user={target.pk}')
+        else:
+            form = UserPrivilegeToggleForm(role_privs, effective)
+
+    return render(
+        request,
+        'accounts/admin/user_privileges.html',
+        {
+            **_admin_context('privileges'),
+            **_privileges_admin_context(),
+            'privileges_active_tab': 'user',
+            'users': users,
+            'target': target,
+            'selected_user_id': user_id,
+            'role': role,
+            'role_label': target.profile.get_role_display() if target and getattr(target, 'profile', None) else '',
+            'privilege_rows': privilege_rows,
+            'form': form,
+            'page_header': build_page_header(
+                'User-based privileges',
+                subtitle='Grant or restrict module access for a single login, on top of their role.',
             ),
         },
     )

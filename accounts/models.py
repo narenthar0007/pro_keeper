@@ -119,6 +119,27 @@ class RolePrivilege(models.Model):
         return f'{self.role}.{self.code} [{state}]'
 
 
+class UserPrivilege(models.Model):
+    """Per-user module access; when present, overrides the role default for that code."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='privilege_overrides',
+    )
+    code = models.CharField(max_length=50)
+    label = models.CharField(max_length=120, blank=True, default='')
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('user', 'code')
+        ordering = ['code']
+
+    def __str__(self):
+        state = 'ON' if self.enabled else 'OFF'
+        return f'{self.user_id}.{self.code} [{state}]'
+
+
 class Brand(models.Model):
     """
     Multi-brand site identity + theme.

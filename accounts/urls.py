@@ -49,6 +49,7 @@ urlpatterns = [
     path('staff/logs/', admin_panel.staff_activity_logs, name='staff_activity_logs'),
     path('staff/table/<str:table>/', admin_panel.staff_table, name='staff_table'),
     path('staff/privileges/', admin_panel.staff_privileges, name='staff_privileges'),
+    path('staff/privileges/users/', admin_panel.staff_user_privileges, name='staff_user_privileges'),
     path('staff/brands/', admin_panel.staff_brands, name='staff_brands'),
     path('staff/brands/new/', admin_panel.staff_brand_create, name='staff_brand_create'),
     path('staff/brands/<int:brand_id>/', admin_panel.staff_brand_edit, name='staff_brand_edit'),

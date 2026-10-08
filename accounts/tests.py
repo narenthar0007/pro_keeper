@@ -3,7 +3,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from accounts.brands import ensure_default_brands
-from accounts.models import Brand, RolePrivilege, UserProfile, ensure_default_privileges
+from accounts.models import Brand, RolePrivilege, UserPrivilege, UserProfile, ensure_default_privileges
 from accounts.nav import get_nav_items
 
 
@@ -63,6 +63,19 @@ class SettingsPrivilegeTests(TestCase):
         self.owner.profile.refresh_from_db()
         self.assertTrue(self.owner.profile.rent_reminder_enabled)
         self.assertEqual(self.owner.profile.rent_due_day, 7)
+
+    def test_user_privilege_override(self):
+        from accounts.privileges import has_privilege, list_privilege_codes_for_user
+
+        self.assertTrue(has_privilege(self.owner, 'view_settings'))
+        UserPrivilege.objects.create(
+            user=self.owner,
+            code='view_settings',
+            label='Access settings page',
+            enabled=False,
+        )
+        self.assertFalse(has_privilege(self.owner, 'view_settings'))
+        self.assertNotIn('view_settings', list_privilege_codes_for_user(self.owner))
 
     def test_settings_hidden_when_view_privilege_off(self):
         from accounts.privileges import has_privilege

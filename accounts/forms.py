@@ -181,6 +181,19 @@ class PrivilegeToggleForm(forms.Form):
             )
 
 
+class UserPrivilegeToggleForm(forms.Form):
+    """Per-user toggles keyed by privilege code (inherits role default when unset)."""
+
+    def __init__(self, role_privileges, effective_enabled, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for priv in role_privileges:
+            self.fields[f'priv_{priv.code}'] = forms.BooleanField(
+                required=False,
+                initial=effective_enabled.get(priv.code, priv.enabled),
+                label=priv.label,
+            )
+
+
 class GroupForm(forms.ModelForm):
     class Meta:
         model = Group

@@ -3,7 +3,7 @@ from functools import wraps
 from django.contrib import messages
 from django.shortcuts import redirect
 
-from .models import RolePrivilege, UserProfile, ensure_default_privileges
+from .models import RolePrivilege, UserPrivilege, UserProfile, ensure_default_privileges
 
 
 def get_user_role(user):
@@ -26,6 +26,14 @@ def is_admin_user(user):
     )
 
 
+def _role_has_privilege(role, code):
+    ensure_default_privileges()
+    priv = RolePrivilege.objects.filter(role=role, code=code).first()
+    if priv is None:
+        return False
+    return priv.enabled
+
+
 def has_privilege(user, code):
     if not user.is_authenticated:
         return False
@@ -39,11 +47,38 @@ def has_privilege(user, code):
         UserProfile.ROLE_EMPLOYEE,
     ):
         return False
+    override = UserPrivilege.objects.filter(user=user, code=code).first()
+    if override is not None:
+        return override.enabled
+    return _role_has_privilege(role, code)
+
+
+def list_privilege_codes_for_user(user):
+    """Privilege codes currently enabled for this user (role defaults + per-user overrides)."""
+    if not user.is_authenticated:
+        return []
+    if is_admin_user(user):
+        ensure_default_privileges()
+        return list(RolePrivilege.objects.values_list('code', flat=True).distinct())
+    role = get_user_role(user)
+    if role not in (
+        UserProfile.ROLE_OWNER,
+        UserProfile.ROLE_TENANT,
+        UserProfile.ROLE_MANAGER,
+        UserProfile.ROLE_EMPLOYEE,
+    ):
+        return []
     ensure_default_privileges()
-    priv = RolePrivilege.objects.filter(role=role, code=code).first()
-    if priv is None:
-        return False
-    return priv.enabled
+    role_privs = RolePrivilege.objects.filter(role=role)
+    overrides = {
+        row.code: row.enabled
+        for row in UserPrivilege.objects.filter(user=user, code__in=role_privs.values('code'))
+    }
+    enabled_codes = []
+    for priv in role_privs:
+        if overrides.get(priv.code, priv.enabled):
+            enabled_codes.append(priv.code)
+    return enabled_codes
 
 
 def privilege_required(code, redirect_to='public_listings'):

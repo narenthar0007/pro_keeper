@@ -1,0 +1,6 @@
+<nav class="admin-subnav" aria-label="Roles and privileges">
+  {% for item in privileges_subnav %}
+    <a class="{% if privileges_active_tab == item.key %}active{% endif %}"
+       href="{% url item.url_name %}">{{ item.label }}</a>
+  {% endfor %}
+</nav>
