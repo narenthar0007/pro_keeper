@@ -141,6 +141,12 @@ def employee_list(request):
     if status_filter:
         qs = qs.filter(approval_status=status_filter)
 
+    show_punch_columns = role == UserProfile.ROLE_MANAGER
+    today = timezone.localdate()
+    subtitle = f'{qs.count()} people in scope'
+    if show_punch_columns:
+        subtitle += f' · Punch in/out for {today.strftime("%d %b %Y")}'
+
     actions = []
     if role in (UserProfile.ROLE_OWNER,) or is_admin_user(request.user):
         actions.append(build_button('Add employee', href=reverse('hrms_employee_create'), variant='primary'))
@@ -148,7 +154,7 @@ def employee_list(request):
 
     page_header = build_page_header(
         title='Employees',
-        subtitle=f'{qs.count()} people in scope',
+        subtitle=subtitle,
         actions=actions,
     )
     kpis = build_kpis(
@@ -165,9 +171,22 @@ def employee_list(request):
             },
         ]
     )
+    attendance_today = {}
+    if show_punch_columns:
+        attendance_today = {
+            row.employee_id: row
+            for row in attendance_for_user(request.user, request).filter(
+                date=today,
+                employee_id__in=qs.values('pk'),
+            )
+        }
+
     rows = []
     for e in qs:
-        row = {
+        att = attendance_today.get(e.pk) if show_punch_columns else None
+        punch_in = att.punch_in.strftime('%H:%M') if att and att.punch_in else '—'
+        punch_out = att.punch_out.strftime('%H:%M') if att and att.punch_out else '—'
+        row_data = {
             'code': e.emp_code,
             'name': e.name,
             'mobile': e.mobile,
@@ -175,44 +194,36 @@ def employee_list(request):
             'approval': e.approval_status,
             'status': e.status,
             'login': e.user.username if e.user_id else '—',
-            'actions': '',
+            'actions': (
+                f'<a href="{reverse("hrms_employee_edit", args=[e.pk])}">Edit</a>'
+            ),
         }
-        links = [f'<a href="{reverse("hrms_employee_edit", args=[e.pk])}">Edit</a>']
-        if (role == UserProfile.ROLE_OWNER or is_admin_user(request.user)) and e.approval_status == Employee.APPROVAL_PENDING:
-            links.append(
-                f'<form method="post" action="{reverse("hrms_employee_approve", args=[e.pk])}" style="display:inline">'
-                f'<input type="hidden" name="csrfmiddlewaretoken" value="{request.META.get("CSRF_COOKIE","")}">'
-                f'<button type="submit">Approve</button></form>'
-            )
-        row['actions_html'] = ' · '.join(links)
-        rows.append(
-            {
-                'code': e.emp_code,
-                'name': e.name,
-                'mobile': e.mobile,
-                'site': e.default_site.name if e.default_site_id else '—',
-                'approval': e.approval_status,
-                'status': e.status,
-                'login': e.user.username if e.user_id else '—',
-                'actions': (
-                    f'<a href="{reverse("hrms_employee_edit", args=[e.pk])}">Edit</a>'
-                ),
-            }
-        )
+        if show_punch_columns:
+            row_data['punch_in'] = punch_in
+            row_data['punch_out'] = punch_out
+        rows.append(row_data)
 
-    # Simpler actions column without inline CSRF forms — use detail approve buttons
+    columns = [
+        {'key': 'code', 'label': 'Code'},
+        {'key': 'name', 'label': 'Name'},
+        {'key': 'mobile', 'label': 'Mobile'},
+        {'key': 'site', 'label': 'Site'},
+        {'key': 'approval', 'label': 'Approval', 'badge': True},
+        {'key': 'status', 'label': 'Status', 'badge': True},
+        {'key': 'login', 'label': 'Login'},
+    ]
+    if show_punch_columns:
+        columns.extend(
+            [
+                {'key': 'punch_in', 'label': 'Punch in'},
+                {'key': 'punch_out', 'label': 'Punch out'},
+            ]
+        )
+    columns.append({'key': 'actions', 'label': '', 'html': True})
+
     table = build_table(
         id='hrms-employees',
-        columns=[
-            {'key': 'code', 'label': 'Code'},
-            {'key': 'name', 'label': 'Name'},
-            {'key': 'mobile', 'label': 'Mobile'},
-            {'key': 'site', 'label': 'Site'},
-            {'key': 'approval', 'label': 'Approval', 'badge': True},
-            {'key': 'status', 'label': 'Status', 'badge': True},
-            {'key': 'login', 'label': 'Login'},
-            {'key': 'actions', 'label': '', 'html': True},
-        ],
+        columns=columns,
         rows=rows,
         empty_text='No employees yet.',
     )

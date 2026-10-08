@@ -1,5 +1,5 @@
 from .brands import resolve_brand
-from .nav import get_nav_items, show_quick_add
+from .nav import get_nav_items, show_quick_add, uses_hrms_workspace
 from .privileges import get_user_role, has_privilege, is_admin_user
 from .brand_scoping import get_request_brand
 
@@ -173,10 +173,12 @@ def site_theme_and_role(request):
         'nav_items': nav_items,
         'show_quick_add': quick_add,
         'rent_reminder_banner': rent_reminder_banner,
+        'use_hrms_workspace': bool(user.is_authenticated and uses_hrms_workspace(role)),
         'use_site_side_nav': bool(
             user.is_authenticated
             and (
                 role in ('owner', 'tenant')
+                or uses_hrms_workspace(role)
                 or (admin and not (path or '').startswith('/accounts/staff'))
             )
         ),

@@ -91,6 +91,25 @@ NAV_CATALOG = [
     _item('hrms_employees', 'Workforce', 'hrms_employees', 'tenants', privilege='hrms_access', match='/hrms/employees'),
     _item('hrms_sites', 'Sites', 'hrms_sites', 'buildings', privilege='hrms_access', match='/hrms/sites'),
     _item('hrms_attendance', 'Attendance', 'hrms_attendance', 'calendar', privilege='hrms_access', match='/hrms/attendance'),
+    _item('hrms_punch', 'Punch', 'hrms_punch', 'portal', privilege='hrms_punch', match='/hrms/punch'),
+    _item(
+        'hrms_regularize_mgr',
+        'Regularize',
+        'hrms_regularize',
+        'calendar',
+        privilege='hrms_apply_regularize',
+        match='/hrms/regularize',
+    ),
+    _item(
+        'hrms_regularize_emp',
+        'Regularize',
+        'hrms_regularize',
+        'calendar',
+        privilege='hrms_apply_regularize_self',
+        match='/hrms/regularize',
+    ),
+    _item('hrms_updates', 'Site updates', 'hrms_updates', 'inbox', privilege='hrms_site_updates', match='/hrms/updates'),
+    _item('hrms_reports', 'Reports', 'hrms_reports', 'reports', privilege='hrms_view_reports', match='/hrms/reports'),
     _item('hrms_approvals', 'Approvals', 'hrms_approvals', 'inbox', privilege='hrms_access', match='/hrms/approvals'),
     _item('hrms_settings', 'HRMS settings', 'hrms_settings', 'settings', privilege='hrms_settings', match='/hrms/settings'),
     _item('settings', 'Settings', 'user_settings', 'settings', privilege='view_settings', match='/accounts/settings'),
@@ -123,15 +142,25 @@ def _is_active(path, match, key):
         return path.startswith('/accounts/settings')
     if key == 'hrms':
         return path == '/hrms/' or path == '/hrms'
+    if key in ('hrms_regularize_mgr', 'hrms_regularize_emp'):
+        return path.startswith('/hrms/regularize')
+    if key == 'hrms_punch':
+        return path.startswith('/hrms/punch')
     if key.startswith('hrms_'):
         return match in path if match else False
     return match in path if match else False
+
+
+def uses_hrms_workspace(role):
+    """Manager/employee use HRMS sidebar only (no property modules in header)."""
+    return role in (UserProfile.ROLE_MANAGER, UserProfile.ROLE_EMPLOYEE)
 
 
 def get_nav_items(user, current_path='', brand=None):
     """Return nav items allowed for this user."""
     items = []
     role = get_user_role(user) if getattr(user, 'is_authenticated', False) else None
+    hrms_workspace = uses_hrms_workspace(role)
     pending_marketing_invites = 0
     unread_inbox = 0
     if user.is_authenticated and brand is not None:
@@ -151,6 +180,8 @@ def get_nav_items(user, current_path='', brand=None):
             unread_inbox = 0
 
     for raw in NAV_CATALOG:
+        if hrms_workspace and not raw['key'].startswith('hrms'):
+            continue
         if not user.is_authenticated and raw['key'] != 'browse':
             continue
         if raw['admin_only'] and not is_admin_user(user):
