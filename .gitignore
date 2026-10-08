@@ -19,3 +19,6 @@ mobile/android/
 mobile/ios/
 mobile/eas-build-log.txt
 mobile/eas-last-build.json
+mobile/eas-recent.json
+mobile/eas-archive-test/
+mobile/eas-log.bin
