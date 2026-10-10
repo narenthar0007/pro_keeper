@@ -60,6 +60,18 @@ class OwnerHrmsSettings(models.Model):
         default='',
         help_text='YYYY-MM of last owner theme edit (one change per month)',
     )
+    weekly_off_days = models.CharField(
+        max_length=20,
+        blank=True,
+        default='6',
+        help_text='Comma-separated weekdays off (0=Mon … 6=Sun). Default Sunday.',
+    )
+    holiday_calendar_color = models.CharField(
+        max_length=20,
+        blank=True,
+        default='#9333ea',
+        help_text='Default color for company holidays on the calendar',
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -337,6 +349,13 @@ class Attendance(models.Model):
         blank=True,
         related_name='hrms_attendance_marked',
     )
+    leave_request = models.ForeignKey(
+        'LeaveRequest',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='attendance_rows',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -416,3 +435,205 @@ class SiteMaterialEntry(models.Model):
 
     def __str__(self):
         return f'{self.item} ({self.quantity} {self.unit})'
+
+
+class LeaveType(models.Model):
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='hrms_leave_types',
+    )
+    brand = models.ForeignKey(
+        'accounts.Brand',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='hrms_leave_types',
+    )
+    name = models.CharField(max_length=80)
+    code = models.CharField(max_length=30)
+    description = models.TextField(blank=True, default='')
+    annual_entitlement = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    color = models.CharField(max_length=20, default='#0b5fff')
+    is_paid = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
+    applicable_roles = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        help_text='Comma-separated job roles; empty = all employees',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['owner', 'code'], name='hrms_leave_type_owner_code_uniq'),
+        ]
+
+    def __str__(self):
+        return f'{self.code} — {self.name}'
+
+
+class EmployeeLeaveAllocation(models.Model):
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name='leave_allocations',
+    )
+    leave_type = models.ForeignKey(
+        LeaveType,
+        on_delete=models.CASCADE,
+        related_name='allocations',
+    )
+    year = models.PositiveIntegerField()
+    allocated_days = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    adjustment_days = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    carry_forward_days = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-year', 'leave_type__name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['employee', 'leave_type', 'year'],
+                name='hrms_leave_alloc_emp_type_year_uniq',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['employee', 'year']),
+        ]
+
+    def __str__(self):
+        return f'{self.employee.emp_code} · {self.leave_type.code} · {self.year}'
+
+
+class LeaveAllocationAuditLog(models.Model):
+    allocation = models.ForeignKey(
+        EmployeeLeaveAllocation,
+        on_delete=models.CASCADE,
+        related_name='audit_logs',
+    )
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='leave_allocation_audits',
+    )
+    action = models.CharField(max_length=40)
+    note = models.CharField(max_length=500, blank=True, default='')
+    snapshot = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class LeaveRequest(models.Model):
+    STATUS_PENDING = 'pending'
+    STATUS_APPROVED = 'approved'
+    STATUS_REJECTED = 'rejected'
+    STATUS_CANCELLED = 'cancelled'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_APPROVED, 'Approved'),
+        (STATUS_REJECTED, 'Rejected'),
+        (STATUS_CANCELLED, 'Cancelled'),
+    ]
+
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name='leave_requests',
+    )
+    leave_type = models.ForeignKey(
+        LeaveType,
+        on_delete=models.PROTECT,
+        related_name='requests',
+    )
+    start_date = models.DateField()
+    end_date = models.DateField()
+    days_requested = models.DecimalField(max_digits=6, decimal_places=2)
+    reason = models.TextField(blank=True, default='')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    approver = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='leave_requests_approved',
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    approver_comment = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['employee', 'status']),
+            models.Index(fields=['status', 'start_date']),
+        ]
+
+    def __str__(self):
+        return f'{self.employee.emp_code} · {self.leave_type.code} · {self.status}'
+
+
+class CompanyHoliday(models.Model):
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='hrms_holidays',
+    )
+    brand = models.ForeignKey(
+        'accounts.Brand',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='hrms_holidays',
+    )
+    name = models.CharField(max_length=120)
+    date = models.DateField()
+    description = models.TextField(blank=True, default='')
+    color = models.CharField(max_length=20, blank=True, default='')
+    recurring_annual = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['date']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['owner', 'date'],
+                name='hrms_holiday_owner_date_uniq',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.name} · {self.date}'
+
+
+class LeaveAuditLog(models.Model):
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='leave_audit_logs',
+    )
+    entity_type = models.CharField(max_length=40)
+    entity_id = models.PositiveIntegerField()
+    action = models.CharField(max_length=40)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='leave_audits_performed',
+    )
+    detail = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']

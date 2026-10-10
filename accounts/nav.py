@@ -112,6 +112,13 @@ NAV_CATALOG = [
     _item('hrms_reports', 'Reports', 'hrms_reports', 'reports', privilege='hrms_view_reports', match='/hrms/reports'),
     _item('hrms_approvals', 'Approvals', 'hrms_approvals', 'inbox', privilege='hrms_access', match='/hrms/approvals'),
     _item('hrms_settings', 'HRMS settings', 'hrms_settings', 'settings', privilege='hrms_settings', match='/hrms/settings'),
+    _item('hrms_leave_types', 'Leave types', 'hrms_leave_types', 'settings', privilege='hrms_manage_leave', match='/hrms/leave/types'),
+    _item('hrms_holidays', 'Holidays', 'hrms_holidays', 'calendar', privilege='hrms_manage_leave', match='/hrms/holidays'),
+    _item('hrms_leave_alloc', 'Leave allocations', 'hrms_leave_allocations', 'tenants', privilege='hrms_leave_allocate', match='/hrms/leave/allocations'),
+    _item('hrms_leave_requests', 'Leave requests', 'hrms_leave_requests', 'inbox', privilege='hrms_leave_approve', match='/hrms/leave/requests'),
+    _item('hrms_leave_my', 'My leaves', 'hrms_leave_my', 'portal', privilege='hrms_leave_apply', match='/hrms/leave/my'),
+    _item('hrms_leave_apply', 'Apply leave', 'hrms_leave_apply', 'calendar', privilege='hrms_leave_apply', match='/hrms/leave/apply'),
+    _item('hrms_calendar', 'HRMS calendar', 'hrms_calendar', 'calendar', privilege='hrms_leave_calendar', match='/hrms/calendar'),
     _item('settings', 'Settings', 'user_settings', 'settings', privilege='view_settings', match='/accounts/settings'),
 ]
 
@@ -194,6 +201,15 @@ def get_nav_items(user, current_path='', brand=None):
             'hrms_employees',
             'hrms_sites',
             'hrms_approvals',
+            'hrms_leave_types',
+            'hrms_holidays',
+            'hrms_leave_alloc',
+            'hrms_leave_requests',
+        ):
+            continue
+        if role == UserProfile.ROLE_MANAGER and raw['key'] in (
+            'hrms_leave_types',
+            'hrms_holidays',
         ):
             continue
         if not user.is_authenticated and raw['key'] != 'browse':

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Leave request{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+<section class="panel">
+  <p><strong>Employee:</strong> {{ leave_request.employee.name }}</p>
+  <p><strong>Leave:</strong> {{ leave_request.leave_type.name }} ({{ leave_request.days_requested }} day(s))</p>
+  <p><strong>Dates:</strong> {{ leave_request.start_date }} – {{ leave_request.end_date }}</p>
+  <p><strong>Reason:</strong> {{ leave_request.reason|linebreaksbr }}</p>
+</section>
+{% if leave_request.status == 'pending' %}
+<section class="panel">
+  <form method="post">
+    {% csrf_token %}
+    {% ui_form form=form submit_label="Submit decision" %}
+  </form>
+</section>
+{% endif %}
+{% endblock %}

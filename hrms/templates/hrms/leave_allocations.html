@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Leave allocations{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+<form method="get" class="actions" style="margin-bottom:1rem; flex-wrap:wrap; gap:0.75rem;">
+  <label>
+    <span class="meta">Employee</span><br>
+    <select name="employee" onchange="this.form.submit()">
+      <option value="">— Select —</option>
+      {% for e in employees %}
+      <option value="{{ e.pk }}" {% if selected_employee and selected_employee.pk == e.pk %}selected{% endif %}>{{ e.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    <span class="meta">Year</span><br>
+    <input type="number" name="year" value="{{ year }}" min="2000" max="2100" onchange="this.form.submit()">
+  </label>
+</form>
+<section class="panel">
+  {% ui_table table %}
+</section>
+{% endblock %}

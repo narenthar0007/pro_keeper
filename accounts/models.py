@@ -370,6 +370,10 @@ DEFAULT_PRIVILEGES = [
     (UserProfile.ROLE_OWNER, 'hrms_mark_attendance', 'Mark attendance', True),
     (UserProfile.ROLE_OWNER, 'hrms_view_reports', 'View HRMS reports', True),
     (UserProfile.ROLE_OWNER, 'hrms_settings', 'Edit HRMS settings', True),
+    (UserProfile.ROLE_OWNER, 'hrms_manage_leave', 'Manage leave types and holidays', True),
+    (UserProfile.ROLE_OWNER, 'hrms_leave_allocate', 'Assign employee leave balances', True),
+    (UserProfile.ROLE_OWNER, 'hrms_leave_approve', 'Approve leave requests', True),
+    (UserProfile.ROLE_OWNER, 'hrms_leave_calendar', 'View HRMS leave calendar', True),
     # Manager HRMS
     (UserProfile.ROLE_MANAGER, 'hrms_access', 'Access HRMS module', True),
     (UserProfile.ROLE_MANAGER, 'hrms_view_site', 'View assigned sites', True),
@@ -378,23 +382,29 @@ DEFAULT_PRIVILEGES = [
     (UserProfile.ROLE_MANAGER, 'hrms_site_updates', 'Post site updates', True),
     (UserProfile.ROLE_MANAGER, 'hrms_punch', 'Punch in / out', True),
     (UserProfile.ROLE_MANAGER, 'hrms_manage_employees', 'Add employees on sites', True),
+    (UserProfile.ROLE_MANAGER, 'hrms_leave_allocate', 'Assign employee leave balances', True),
+    (UserProfile.ROLE_MANAGER, 'hrms_leave_approve', 'Approve leave requests', True),
+    (UserProfile.ROLE_MANAGER, 'hrms_leave_calendar', 'View HRMS leave calendar', True),
     # Employee HRMS
     (UserProfile.ROLE_EMPLOYEE, 'hrms_access', 'Access HRMS module', True),
     (UserProfile.ROLE_EMPLOYEE, 'hrms_punch', 'Punch in / out', True),
     (UserProfile.ROLE_EMPLOYEE, 'hrms_view_own', 'View own attendance', True),
     (UserProfile.ROLE_EMPLOYEE, 'hrms_apply_regularize_self', 'Apply own regularize', True),
+    (UserProfile.ROLE_EMPLOYEE, 'hrms_leave_apply', 'Apply for leave', True),
+    (UserProfile.ROLE_EMPLOYEE, 'hrms_leave_calendar', 'View HRMS leave calendar', True),
 ]
 
 
 def ensure_default_privileges():
-    if RolePrivilege.objects.filter(role=UserProfile.ROLE_OWNER, code='view_dashboard').exists():
-        return
+    """Create missing role privileges from DEFAULT_PRIVILEGES (keeps existing enabled flags)."""
     for role, code, label, enabled in DEFAULT_PRIVILEGES:
-        RolePrivilege.objects.get_or_create(
+        priv, created = RolePrivilege.objects.get_or_create(
             role=role,
             code=code,
             defaults={'label': label, 'enabled': enabled},
         )
+        if not created and priv.label != label:
+            RolePrivilege.objects.filter(pk=priv.pk).update(label=label)
 
 
 @receiver(post_save, sender=User)

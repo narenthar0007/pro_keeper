@@ -8,7 +8,17 @@ from accounts.brand_scoping import get_request_brand
 from accounts.models import UserProfile
 from accounts.privileges import get_user_role, is_admin_user
 
-from hrms.models import Attendance, Employee, OwnerHrmsSettings, Site, SiteAssignment, SiteDailyUpdate
+from hrms.models import (
+    Attendance,
+    CompanyHoliday,
+    Employee,
+    LeaveRequest,
+    LeaveType,
+    OwnerHrmsSettings,
+    Site,
+    SiteAssignment,
+    SiteDailyUpdate,
+)
 
 
 def get_owner_for_user(user):
@@ -127,6 +137,60 @@ def site_updates_for_user(user, request=None):
         return qs.filter(owner=user)
     if role == UserProfile.ROLE_MANAGER:
         return qs.filter(manager=user)
+    return qs.none()
+
+
+def leave_requests_for_user(user, request=None):
+    qs = LeaveRequest.objects.select_related(
+        'employee',
+        'leave_type',
+        'approver',
+    )
+    if is_admin_user(user):
+        brand = get_request_brand(request) if request else None
+        if brand:
+            qs = qs.filter(employee__brand=brand)
+        return qs
+    role = get_user_role(user)
+    if role == UserProfile.ROLE_OWNER:
+        return qs.filter(employee__owner=user)
+    if role == UserProfile.ROLE_MANAGER:
+        emp_ids = employees_for_user(user, request).values('pk')
+        return qs.filter(employee_id__in=emp_ids)
+    if role == UserProfile.ROLE_EMPLOYEE:
+        return qs.filter(employee__user=user)
+    return qs.none()
+
+
+def leave_types_for_user(user, request=None):
+    qs = LeaveType.objects.all()
+    if is_admin_user(user):
+        brand = get_request_brand(request) if request else None
+        if brand:
+            qs = qs.filter(brand=brand)
+        return qs
+    role = get_user_role(user)
+    owner = get_owner_for_user(user) if role in (UserProfile.ROLE_MANAGER, UserProfile.ROLE_EMPLOYEE) else None
+    if role == UserProfile.ROLE_OWNER:
+        return qs.filter(owner=user)
+    if owner:
+        return qs.filter(owner=owner)
+    return qs.none()
+
+
+def holidays_for_user(user, request=None):
+    qs = CompanyHoliday.objects.all()
+    if is_admin_user(user):
+        brand = get_request_brand(request) if request else None
+        if brand:
+            qs = qs.filter(brand=brand)
+        return qs
+    role = get_user_role(user)
+    if role == UserProfile.ROLE_OWNER:
+        return qs.filter(owner=user)
+    owner = get_owner_for_user(user)
+    if owner:
+        return qs.filter(owner=owner)
     return qs.none()
 
 

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}My leaves{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+<section class="panel">
+  {% ui_heading text="Balances" level=2 %}
+  {% ui_table bal_table %}
+</section>
+<section class="panel">
+  {% ui_heading text="History" level=2 %}
+  {% ui_table hist_table %}
+  {% for r in history %}
+    {% if r.status == 'pending' %}
+    <form method="post" action="{% url 'hrms_leave_cancel' r.pk %}" style="margin-top:0.5rem;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-secondary btn-sm">Cancel pending request ({{ r.leave_type.code }}, {{ r.start_date }})</button>
+    </form>
+    {% endif %}
+  {% endfor %}
+</section>
+{% endblock %}
