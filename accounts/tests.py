@@ -40,6 +40,25 @@ class SettingsPrivilegeTests(TestCase):
         )
         self.assertIn('view_settings', tenant_codes)
         self.assertIn('manage_rent_reminders', tenant_codes)
+        self.assertIn('hrms_manage_leave', codes)
+        self.assertIn('hrms_leave_approve', codes)
+        employee_codes = set(
+            RolePrivilege.objects.filter(role=UserProfile.ROLE_EMPLOYEE).values_list(
+                'code', flat=True
+            )
+        )
+        self.assertIn('hrms_leave_apply', employee_codes)
+        self.assertIn('hrms_leave_calendar', employee_codes)
+
+    def test_ensure_default_privileges_syncs_missing_codes(self):
+        RolePrivilege.objects.filter(code='hrms_manage_leave').delete()
+        ensure_default_privileges()
+        self.assertTrue(
+            RolePrivilege.objects.filter(
+                role=UserProfile.ROLE_OWNER,
+                code='hrms_manage_leave',
+            ).exists()
+        )
 
     def test_owner_can_open_and_save_settings(self):
         self.client.login(username='owner1', password='pass12345')

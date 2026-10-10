@@ -3,7 +3,11 @@ from unfold.admin import ModelAdmin
 
 from hrms.models import (
     Attendance,
+    CompanyHoliday,
     Employee,
+    EmployeeLeaveAllocation,
+    LeaveRequest,
+    LeaveType,
     OwnerHrmsSettings,
     Site,
     SiteAssignment,
@@ -72,6 +76,28 @@ class AttendanceAdmin(ModelAdmin):
     )
     list_filter = ('status', 'regularized', 'approval_status', 'date')
     search_fields = ('employee__emp_code', 'employee__name', 'punch_code_in', 'punch_code_out')
+
+
+@admin.register(LeaveType)
+class LeaveTypeAdmin(ModelAdmin):
+    list_display = ('code', 'name', 'owner', 'annual_entitlement', 'is_active')
+    search_fields = ('code', 'name', 'owner__username')
+
+
+@admin.register(EmployeeLeaveAllocation)
+class EmployeeLeaveAllocationAdmin(ModelAdmin):
+    list_display = ('employee', 'leave_type', 'year', 'allocated_days', 'adjustment_days')
+
+
+@admin.register(LeaveRequest)
+class LeaveRequestAdmin(ModelAdmin):
+    list_display = ('employee', 'leave_type', 'start_date', 'end_date', 'days_requested', 'status')
+    list_filter = ('status',)
+
+
+@admin.register(CompanyHoliday)
+class CompanyHolidayAdmin(ModelAdmin):
+    list_display = ('name', 'date', 'owner', 'recurring_annual')
 
 
 @admin.register(SiteDailyUpdate)

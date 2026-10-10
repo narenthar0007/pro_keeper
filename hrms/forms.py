@@ -1,10 +1,15 @@
+from decimal import Decimal
+
 from django import forms
 from django.contrib.auth.models import User
 from django.utils import timezone
 
 from hrms.models import (
     Attendance,
+    CompanyHoliday,
     Employee,
+    EmployeeLeaveAllocation,
+    LeaveType,
     OwnerHrmsSettings,
     Site,
     SiteAssignment,
@@ -311,3 +316,112 @@ class AdminOwnerHrmsEnableForm(forms.ModelForm):
 
 class PunchDecodeForm(forms.Form):
     code = forms.CharField(max_length=15, min_length=15, label='15-char punch code')
+
+
+class LeaveTypeForm(forms.ModelForm):
+    class Meta:
+        model = LeaveType
+        fields = [
+            'name',
+            'code',
+            'description',
+            'annual_entitlement',
+            'color',
+            'is_paid',
+            'is_active',
+            'applicable_roles',
+        ]
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 2}),
+            'color': forms.TextInput(attrs={'type': 'color'}),
+            'annual_entitlement': forms.NumberInput(attrs={'step': '0.5', 'min': '0'}),
+        }
+
+
+class CompanyHolidayForm(forms.ModelForm):
+    class Meta:
+        model = CompanyHoliday
+        fields = ['name', 'date', 'description', 'color', 'recurring_annual']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+            'description': forms.Textarea(attrs={'rows': 2}),
+            'color': forms.TextInput(attrs={'type': 'color'}),
+        }
+
+
+class LeaveAllocationForm(forms.Form):
+    employee = forms.ModelChoiceField(queryset=Employee.objects.none())
+    leave_type = forms.ModelChoiceField(queryset=LeaveType.objects.none())
+    year = forms.IntegerField(min_value=2000, max_value=2100)
+    allocated_days = forms.DecimalField(min_value=0, max_digits=6, decimal_places=2)
+    adjustment_days = forms.DecimalField(
+        required=False,
+        min_value=Decimal('-365'),
+        max_digits=6,
+        decimal_places=2,
+        initial=Decimal('0'),
+    )
+    carry_forward_days = forms.DecimalField(
+        required=False,
+        min_value=0,
+        max_digits=6,
+        decimal_places=2,
+        initial=Decimal('0'),
+    )
+    note = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 2}))
+
+    def __init__(self, *args, employees_qs=None, types_qs=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if employees_qs is not None:
+            self.fields['employee'].queryset = employees_qs
+        if types_qs is not None:
+            self.fields['leave_type'].queryset = types_qs
+        self.fields['year'].initial = timezone.localdate().year
+
+
+class LeaveApplyForm(forms.Form):
+    leave_type = forms.ModelChoiceField(queryset=LeaveType.objects.none())
+    start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    end_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    reason = forms.CharField(widget=forms.Textarea(attrs={'rows': 3}))
+
+    def __init__(self, *args, employee=None, types_qs=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.employee = employee
+        if types_qs is not None:
+            self.fields['leave_type'].queryset = types_qs
+
+    def clean(self):
+        cleaned = super().clean()
+        if not self.employee:
+            return cleaned
+        from hrms.services.leave import validate_leave_request
+
+        try:
+            days = validate_leave_request(
+                self.employee,
+                cleaned['leave_type'],
+                cleaned['start_date'],
+                cleaned['end_date'],
+            )
+            cleaned['days_requested'] = days
+        except forms.ValidationError:
+            raise
+        except Exception as exc:
+            from django.core.exceptions import ValidationError as DjangoValidationError
+
+            if isinstance(exc, DjangoValidationError):
+                raise forms.ValidationError(exc.messages)
+            raise forms.ValidationError(str(exc))
+        return cleaned
+
+
+class LeaveDecisionForm(forms.Form):
+    action = forms.ChoiceField(choices=[('approve', 'Approve'), ('reject', 'Reject')])
+    comment = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 2}))
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get('action') == 'reject' and not (cleaned.get('comment') or '').strip():
+            self.add_error('comment', 'Rejection reason is required.')
+        return cleaned

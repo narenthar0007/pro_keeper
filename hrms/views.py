@@ -134,6 +134,8 @@ def hrms_dashboard(request):
         actions=[
             build_button('Employees', href=reverse('hrms_employees'), variant='secondary'),
             build_button('Punch', href=reverse('hrms_punch'), variant='primary'),
+            build_button('Leave requests', href=reverse('hrms_leave_requests'), variant='secondary'),
+            build_button('Calendar', href=reverse('hrms_calendar'), variant='secondary'),
         ],
     )
     recent = attendance.order_by('-date', '-id')[:10]

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}HRMS Calendar{% endblock %}
+
+{% block extra_head %}
+<style>
+  .calendar-table td { vertical-align: top; min-height: 4.5rem; }
+  .cal-event { font-size: 0.75rem; padding: 0.15rem 0.35rem; margin: 0.15rem 0; border-radius: 4px; color: #fff; }
+  .cal-event.is-pending { opacity: 0.65; border: 1px dashed #fff; }
+  .cal-legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin-bottom: 1rem; }
+  .cal-legend span { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; }
+  .cal-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .cal-filters { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; margin-bottom: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+
+<form method="get" class="cal-filters">
+  {% if employees %}
+  <label>
+    <span class="meta">Employee</span><br>
+    <select name="employee" onchange="this.form.submit()">
+      {% for e in employees %}
+      <option value="{{ e.pk }}" {% if selected_employee and selected_employee.pk == e.pk %}selected{% endif %}>{{ e.name }} ({{ e.emp_code }})</option>
+      {% endfor %}
+    </select>
+  </label>
+  {% endif %}
+  <input type="hidden" name="year" value="{{ year }}">
+  <input type="hidden" name="month" value="{{ month }}">
+  <label><input type="checkbox" name="show_holidays" value="1" {% if show_holidays %}checked{% endif %} onchange="this.form.submit()"> Holidays</label>
+  <label><input type="checkbox" name="show_attendance" value="1" {% if show_attendance %}checked{% endif %} onchange="this.form.submit()"> Attendance</label>
+</form>
+
+{% if legend %}
+<div class="cal-legend panel">
+  {% for item in legend %}
+  <span><span class="cal-swatch" style="background:{{ item.color }}"></span> {{ item.label }}{% if item.pending %} (pending style){% endif %}</span>
+  {% endfor %}
+</div>
+{% endif %}
+
+<p class="meta">
+  <a href="?year={{ prev.year }}&month={{ prev.month }}{% if selected_employee %}&employee={{ selected_employee.pk }}{% endif %}">Previous</a>
+  · {{ month_label }} ·
+  <a href="?year={{ next.year }}&month={{ next.month }}{% if selected_employee %}&employee={{ selected_employee.pk }}{% endif %}">Next</a>
+</p>
+
+<section class="panel">
+  <table class="calendar-table ui-table">
+    <thead>
+      <tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr>
+    </thead>
+    <tbody>
+      {% for week in weeks %}
+      <tr>
+        {% for cell in week %}
+        <td {% if cell.today %}class="today"{% endif %}>
+          {% if cell %}
+          <strong>{{ cell.day }}</strong>
+          {% for ev in cell.events %}
+          <div class="cal-event {% if ev.pending %}is-pending{% endif %}" style="background:{{ ev.color }}" title="{{ ev.title|default:ev.label }}">{{ ev.label }}</div>
+          {% endfor %}
+          {% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

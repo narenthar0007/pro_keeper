@@ -1,6 +1,7 @@
 from django.urls import path
 
 from hrms import views
+from hrms import views_leave
 
 urlpatterns = [
     path('', views.hrms_dashboard, name='hrms_dashboard'),
@@ -25,4 +26,18 @@ urlpatterns = [
     path('employees/export/', views.employees_export, name='hrms_employees_export'),
     path('settings/', views.hrms_settings, name='hrms_settings'),
     path('settings/owner/<int:owner_id>/', views.admin_toggle_owner_hrms, name='hrms_admin_owner_settings'),
+    path('leave/types/', views_leave.leave_type_list, name='hrms_leave_types'),
+    path('leave/types/add/', views_leave.leave_type_create, name='hrms_leave_type_create'),
+    path('leave/types/<int:pk>/edit/', views_leave.leave_type_edit, name='hrms_leave_type_edit'),
+    path('holidays/', views_leave.holiday_list, name='hrms_holidays'),
+    path('holidays/add/', views_leave.holiday_create, name='hrms_holiday_create'),
+    path('holidays/<int:pk>/edit/', views_leave.holiday_edit, name='hrms_holiday_edit'),
+    path('leave/allocations/', views_leave.leave_allocation_list, name='hrms_leave_allocations'),
+    path('leave/allocations/edit/', views_leave.leave_allocation_edit, name='hrms_leave_allocation_edit'),
+    path('leave/my/', views_leave.leave_my, name='hrms_leave_my'),
+    path('leave/apply/', views_leave.leave_apply, name='hrms_leave_apply'),
+    path('leave/my/<int:pk>/cancel/', views_leave.leave_cancel, name='hrms_leave_cancel'),
+    path('leave/requests/', views_leave.leave_requests, name='hrms_leave_requests'),
+    path('leave/requests/<int:pk>/', views_leave.leave_request_detail, name='hrms_leave_request_detail'),
+    path('calendar/', views_leave.hrms_calendar, name='hrms_calendar'),
 ]
