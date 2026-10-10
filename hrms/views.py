@@ -231,7 +231,7 @@ def employee_list(request):
             'mobile': e.mobile,
             'site': e.default_site.name if e.default_site_id else '—',
             'approval': e.approval_status,
-            'status': e.status,
+            'status': 'Not working' if e.is_not_working else e.status,
             'login': e.user.username if e.user_id else '—',
             'actions': (
                 f'<a href="{reverse("hrms_employee_edit", args=[e.pk])}">Edit</a>'
@@ -674,7 +674,11 @@ def punch_view(request):
     if role not in (UserProfile.ROLE_EMPLOYEE, UserProfile.ROLE_MANAGER) and not is_admin_user(request.user):
         messages.info(request, 'Owners mark attendance from the Attendance page.')
         return redirect('hrms_attendance')
+    employee = Employee.objects.filter(user=request.user).select_related('default_site').first()
     sites = sites_for_user(request.user, request)
+    initial = {}
+    if employee and employee.default_site_id:
+        initial['site'] = employee.default_site_id
     wa_link = None
     if request.method == 'POST':
         form = PunchForm(request.POST, sites_qs=sites)
@@ -685,7 +689,7 @@ def punch_view(request):
                     punch_type=form.cleaned_data['punch_type'],
                     lat=form.cleaned_data['latitude'],
                     lng=form.cleaned_data['longitude'],
-                    site=form.cleaned_data.get('site'),
+                    site=form.cleaned_data.get('site') or (employee.default_site if employee else None),
                     request=request,
                 )
                 messages.success(
@@ -696,9 +700,12 @@ def punch_view(request):
                 if warn:
                     messages.warning(request, warn)
             except ValidationError as exc:
-                messages.error(request, str(exc))
+                messages.error(
+                    request,
+                    '; '.join(exc.messages) if getattr(exc, 'messages', None) else str(exc),
+                )
     else:
-        form = PunchForm(sites_qs=sites)
+        form = PunchForm(initial=initial, sites_qs=sites)
     page_header = build_page_header(
         title='Punch in / out',
         subtitle='Allow location access; once per day for in and out',

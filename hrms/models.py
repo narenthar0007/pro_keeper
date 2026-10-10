@@ -256,13 +256,14 @@ class Employee(models.Model):
 
     @property
     def is_approved(self):
-        return self.approval_status == self.APPROVAL_APPROVED
+        return (self.approval_status or '').strip().lower() == self.APPROVAL_APPROVED.lower()
 
     @property
     def can_punch(self):
+        status = (self.status or '').strip().lower()
         return (
             self.is_approved
-            and self.status == self.STATUS_ACTIVE
+            and status == self.STATUS_ACTIVE.lower()
             and not self.is_not_working
         )
 
