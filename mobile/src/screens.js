@@ -283,18 +283,21 @@ export function PropertyFormScreen({ route, navigation }) {
   useEffect(() => {
     api.options().then(setOpts).catch(() => {});
     if (id) {
-      api.property(id).then((p) =>
-        setForm((f) => ({
-          ...f,
-          ...p,
-          monthly_rent: String(p.monthly_rent || ''),
-          rooms: String(p.rooms ?? ''),
-          kitchens: String(p.kitchens ?? ''),
-          bedrooms: String(p.bedrooms ?? ''),
-          bathrooms: String(p.bathrooms ?? ''),
-          amenity_ids: p.amenity_ids || [],
-        }))
-      );
+      api
+        .property(id)
+        .then((p) =>
+          setForm((f) => ({
+            ...f,
+            ...p,
+            monthly_rent: String(p.monthly_rent || ''),
+            rooms: String(p.rooms ?? ''),
+            kitchens: String(p.kitchens ?? ''),
+            bedrooms: String(p.bedrooms ?? ''),
+            bathrooms: String(p.bathrooms ?? ''),
+            amenity_ids: p.amenity_ids || [],
+          }))
+        )
+        .catch((e) => Alert.alert('Could not load property', e.message));
     }
   }, [id]);
   const toggleAmenity = (aid) => {
@@ -447,10 +450,13 @@ export function TenantFormScreen({ route, navigation }) {
   useEffect(() => {
     api.properties().then(setProps).catch(() => {});
     if (id) {
-      api.tenants().then((rows) => {
-        const t = rows.find((x) => x.id === id);
-        if (t) setForm((f) => ({ ...f, ...t }));
-      });
+      api
+        .tenants()
+        .then((rows) => {
+          const t = rows.find((x) => x.id === id);
+          if (t) setForm((f) => ({ ...f, ...t }));
+        })
+        .catch((e) => Alert.alert('Could not load tenant', e.message));
     }
   }, [id]);
   const save = async () => {
