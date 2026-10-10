@@ -32,8 +32,20 @@ def _working_hours(punch_in: time, punch_out: time) -> Decimal:
 
 
 def _assert_can_punch(employee: Employee):
-    if not employee.can_punch:
-        raise ValidationError('Employee must be Approved and Active to punch.')
+    if employee.can_punch:
+        return
+    if not employee.is_approved:
+        raise ValidationError(
+            'This login is not approved for punch yet. Ask the owner to approve the employee.'
+        )
+    if (employee.status or '').strip().lower() != Employee.STATUS_ACTIVE.lower():
+        raise ValidationError('Employee status must be Active to punch.')
+    if employee.is_not_working:
+        raise ValidationError(
+            'Punch is blocked because Not working is checked for this employee. '
+            'The owner can open Workforce, edit this person, and uncheck Not working.'
+        )
+    raise ValidationError('Employee must be Approved and Active to punch.')
 
 
 def punch(*, user, punch_type: str, lat, lng, site=None, request=None):

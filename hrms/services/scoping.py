@@ -80,6 +80,11 @@ def sites_for_user(user, request=None):
         return qs.filter(owner=user)
     if role == UserProfile.ROLE_MANAGER:
         return qs.filter(assignments__manager=user).distinct()
+    if role == UserProfile.ROLE_EMPLOYEE:
+        emp = getattr(user, 'hrms_employee', None)
+        if emp is not None and emp.default_site_id:
+            return qs.filter(pk=emp.default_site_id)
+        return qs.none()
     return qs.none()
 
 

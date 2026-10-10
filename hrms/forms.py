@@ -64,6 +64,12 @@ class EmployeeForm(forms.ModelForm):
             'remarks': forms.Textarea(attrs={'rows': 2}),
             'address': forms.TextInput(),
         }
+        labels = {
+            'is_not_working': 'Not working',
+        }
+        help_texts = {
+            'is_not_working': 'Checked means this person cannot punch in or out.',
+        }
 
     def __init__(self, *args, owner=None, sites_qs=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -223,10 +229,18 @@ class AttendanceMarkForm(forms.ModelForm):
 
 
 class PunchForm(forms.Form):
-    punch_type = forms.ChoiceField(choices=[('in', 'Punch in'), ('out', 'Punch out')])
-    latitude = forms.DecimalField(max_digits=10, decimal_places=7)
-    longitude = forms.DecimalField(max_digits=10, decimal_places=7)
-    site = forms.ModelChoiceField(queryset=Site.objects.none(), required=False)
+    punch_type = forms.ChoiceField(
+        label='Punch',
+        choices=[('in', 'Punch in'), ('out', 'Punch out')],
+    )
+    latitude = forms.DecimalField(label='Latitude', max_digits=10, decimal_places=7)
+    longitude = forms.DecimalField(label='Longitude', max_digits=10, decimal_places=7)
+    site = forms.ModelChoiceField(
+        label='Site',
+        queryset=Site.objects.none(),
+        required=False,
+        empty_label='Select site',
+    )
 
     def __init__(self, *args, sites_qs=None, **kwargs):
         super().__init__(*args, **kwargs)

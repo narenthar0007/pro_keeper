@@ -15,7 +15,7 @@ from hrms.services.attendance import (
     punch,
 )
 from hrms.services.punch_codes import decode_punch_code, generate_punch_code
-from hrms.services.scoping import attendance_for_user, employees_for_user
+from hrms.services.scoping import attendance_for_user, employees_for_user, sites_for_user
 from hrms.services.users import ensure_employee_login
 
 
@@ -65,6 +65,40 @@ class HrmsCoreTests(TestCase):
             approval_status=Employee.APPROVAL_PENDING,
         )
         ensure_employee_login(self.emp, role=UserProfile.ROLE_EMPLOYEE, brand=self.brand)
+
+    def test_employee_punch_page_lists_assigned_site(self):
+        approve_employee(actor=self.owner_a, employee=self.emp, approve=True)
+        self.assertEqual(list(sites_for_user(self.emp.user)), [self.site])
+        self.client.force_login(self.emp.user)
+        response = self.client.get('/hrms/punch/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Site Alpha')
+        posted = self.client.post(
+            '/hrms/punch/',
+            {
+                'punch_type': 'in',
+                'latitude': '12.9700000',
+                'longitude': '77.5900000',
+                'site': str(self.site.pk),
+            },
+        )
+        self.assertEqual(posted.status_code, 200)
+        self.assertContains(posted, 'In saved')
+        att = Attendance.objects.get(employee=self.emp)
+        self.assertEqual(att.site_id, self.site.pk)
+
+    def test_not_working_blocks_punch_with_clear_reason(self):
+        approve_employee(actor=self.owner_a, employee=self.emp, approve=True)
+        self.emp.is_not_working = True
+        self.emp.save(update_fields=['is_not_working'])
+        with self.assertRaises(ValidationError) as ctx:
+            punch(
+                user=self.emp.user,
+                punch_type='in',
+                lat=Decimal('12.97'),
+                lng=Decimal('77.59'),
+            )
+        self.assertIn('Not working', '; '.join(ctx.exception.messages))
 
     def test_pending_cannot_punch(self):
         with self.assertRaises(ValidationError):
