@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{{ page_header.title }} — Marketplace{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+<section class="panel">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% ui_form form=form submit_label="Save" %}
+  </form>
+</section>
+{% endblock %}

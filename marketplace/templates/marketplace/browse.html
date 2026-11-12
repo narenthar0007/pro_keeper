@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Marketplace{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+<section class="panel">
+  <form method="get" class="filter-bar" style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search title, city…" class="search-input">
+    <select name="kind">
+      {% for value, label in kind_choices %}
+      <option value="{{ value }}" {% if kind == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary">Filter</button>
+  </form>
+
+  {% if feed %}
+  <div class="listings-grid" style="display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
+    {% for item in feed %}
+    <article class="listing-card panel" style="padding:1rem">
+      <p class="meta" style="margin:0 0 0.35rem"><span class="badge">{{ item.kind_label }}</span></p>
+      <h3 style="margin:0 0 0.35rem;font-size:1.05rem">{{ item.title }}</h3>
+      <p class="meta" style="margin:0 0 0.5rem">{{ item.subtitle }}</p>
+      <p style="margin:0 0 0.75rem;font-weight:600">{{ item.price }}</p>
+      {% if item.detail_url %}
+      <a href="{{ item.detail_url }}" class="btn btn-secondary">View property</a>
+      {% elif item.source == 'listing' %}
+      <span class="meta">Contact seller via phone on listing (detail page coming soon)</span>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="meta">No items match your filters. Owners can add products, services, and more under My marketplace listings.</p>
+  {% endif %}
+</section>
+{% endblock %}

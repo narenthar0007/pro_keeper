@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{{ page_header.title }}{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+<section class="panel" style="margin-bottom:1.5rem">
+  <h2 class="h3">Page settings</h2>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="save_site">
+    {% ui_form form=form submit_label="Save page" %}
+  </form>
+</section>
+<section class="panel">
+  <h2 class="h3">Products to showcase / sell</h2>
+  <form method="post" enctype="multipart/form-data" style="margin-top:1rem">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="add_product">
+    {% ui_form form=product_form submit_label="Add product" %}
+  </form>
+  {% if products %}
+  <ul style="margin-top:1.5rem;list-style:none;padding:0">
+    {% for p in products %}
+    <li style="padding:0.75rem 0;border-top:1px solid var(--border,#e5e7eb)">
+      <strong>{{ p.name }}</strong>
+      {% if p.price %} — ₹ {{ p.price }}{% endif %}
+      {% if not p.is_active %} <span class="badge">Hidden</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endblock %}

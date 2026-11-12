@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ site.business_name }}</title>
+  <style>
+    :root { --brand: {{ site.theme_color }}; --header-h: 56px; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; color: #111; line-height: 1.5; background: #f8fafc; }
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .site-header {
+      position: sticky; top: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; padding: 0 1.25rem; height: var(--header-h);
+      background: #fff; border-bottom: 1px solid #e5e7eb;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .site-header__brand { display: flex; align-items: center; gap: 0.65rem; min-width: 0; }
+    .site-header__brand img { height: 36px; width: auto; object-fit: contain; }
+    .site-header__title { font-weight: 700; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .site-header__nav { display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
+    .site-header__nav a.nav-link { color: #374151; font-size: 0.95rem; }
+    .btn-login {
+      display: inline-block; padding: 0.4rem 0.9rem; border-radius: 8px;
+      background: var(--brand); color: #fff !important; font-weight: 600; font-size: 0.9rem;
+      text-decoration: none !important;
+    }
+    .btn-login:hover { filter: brightness(1.05); }
+
+    .hero {
+      position: relative; min-height: 220px; display: flex; align-items: flex-end;
+      background: linear-gradient(135deg, var(--brand), #1e3a5f); color: #fff;
+      padding: 2rem 1.25rem;
+    }
+    .hero--image { background-size: cover; background-position: center; min-height: 280px; }
+    .hero__overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,.65), rgba(0,0,0,.15));
+    }
+    .hero__inner { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; width: 100%; }
+    .hero h1 { margin: 0 0 0.35rem; font-size: clamp(1.5rem, 4vw, 2rem); }
+    .hero p { margin: 0; opacity: 0.95; max-width: 36rem; }
+
+    main { max-width: 960px; margin: 0 auto; padding: 1.75rem 1.25rem 2.5rem; }
+    section { margin-bottom: 2rem; }
+    section h2 { margin: 0 0 1rem; font-size: 1.25rem; }
+    .grid { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+    .card {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+      overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .card__img-wrap { aspect-ratio: 4/3; background: #f1f5f9; }
+    .card__img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .card__body { padding: 1rem; }
+    .card h3 { margin: 0 0 0.35rem; font-size: 1.05rem; }
+    .price { font-weight: 700; color: var(--brand); margin: 0.5rem 0 0; }
+
+    .site-footer {
+      border-top: 1px solid #e5e7eb; background: #fff;
+      padding: 1.25rem 1.25rem 1.5rem; text-align: center;
+      color: #6b7280; font-size: 0.9rem;
+    }
+    .site-footer strong { color: #374151; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__brand">
+      {% if site.logo %}<img src="{{ site.logo.url }}" alt="">{% endif %}
+      <span class="site-header__title">{{ site.business_name }}</span>
+    </div>
+    <nav class="site-header__nav" aria-label="Site">
+      <a class="nav-link" href="#products">Products</a>
+      <a class="nav-link" href="#contact">Contact</a>
+      {% if show_login %}<a class="btn-login" href="{{ login_url }}">Log in</a>{% endif %}
+    </nav>
+  </header>
+
+  <section
+    class="hero{% if site.hero_display_url %} hero--image{% endif %}"
+    {% if site.hero_display_url %}style="background-image: url('{{ site.hero_display_url }}');"{% endif %}
+  >
+    {% if site.hero_display_url %}<div class="hero__overlay"></div>{% endif %}
+    <div class="hero__inner">
+      <h1>{{ site.business_name }}</h1>
+      {% if site.tagline %}<p>{{ site.tagline }}</p>{% endif %}
+    </div>
+  </section>
+
+  <main>
+    {% if site.about %}
+    <section class="about">
+      <h2>About</h2>
+      <p>{{ site.about|linebreaksbr }}</p>
+    </section>
+    {% endif %}
+
+    <section id="products">
+      <h2>Products</h2>
+      {% if products %}
+      <div class="grid">
+        {% for p in products %}
+        <article class="card">
+          {% if p.display_image_url %}
+          <div class="card__img-wrap">
+            <img src="{{ p.display_image_url }}" alt="{{ p.name }}">
+          </div>
+          {% endif %}
+          <div class="card__body">
+            <h3>{{ p.name }}</h3>
+            {% if p.description %}<p style="margin:0 0 0.5rem;font-size:0.95rem;color:#4b5563">{{ p.description|truncatewords:30 }}</p>{% endif %}
+            {% if p.price %}<p class="price">₹ {{ p.price }}</p>{% endif %}
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>Products coming soon.</p>
+      {% endif %}
+    </section>
+
+    {% if site.contact_phone or site.contact_email %}
+    <section id="contact">
+      <h2>Contact</h2>
+      {% if site.contact_phone %}<p>Phone: {{ site.contact_phone }}</p>{% endif %}
+      {% if site.contact_email %}<p>Email: <a href="mailto:{{ site.contact_email }}">{{ site.contact_email }}</a></p>{% endif %}
+    </section>
+    {% endif %}
+  </main>
+
+  <footer class="site-footer">
+    <p>Developed with <strong>{{ platform_brand }}</strong></p>
+    <p style="margin:0.35rem 0 0;font-size:0.85rem">&copy; {{ site.business_name }}</p>
+  </footer>
+</body>
+</html>
