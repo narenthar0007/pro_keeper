@@ -81,6 +81,9 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'properties',
     'hrms.apps.HrmsConfig',
+    'marketplace.apps.MarketplaceConfig',
+    'storefront.apps.StorefrontConfig',
+    'appointments.apps.AppointmentsConfig',
 ]
 
 MIDDLEWARE = [

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Book with {{ host_name }}{% endblock %}
+
+{% block content %}
+<main class="public-book" style="max-width:28rem;margin:2rem auto;padding:0 1rem">
+  <header style="margin-bottom:1.5rem;text-align:center">
+    <h1>{{ host_name }}</h1>
+    {% if designation %}<p class="muted">{{ designation }}</p>{% endif %}
+    {% if description %}<p>{{ description }}</p>{% endif %}
+    <p class="meta">Times shown in Asia/Kolkata</p>
+  </header>
+
+  <form method="get" class="panel stack" style="margin-bottom:1rem">
+    <label>Pick a date
+      <input type="date" name="date" value="{{ selected_date }}" min="{{ min_date }}" class="input" required>
+    </label>
+    <button type="submit" class="btn btn--secondary">Show available slots</button>
+  </form>
+
+  {% if slots %}
+  <section class="panel">
+    <h2 class="panel__title">Available slots</h2>
+    <form method="post" class="stack">
+      {% csrf_token %}
+      <input type="hidden" name="appointment_date" value="{{ selected_date }}">
+      <label>Time slot
+        <select name="slot" class="input" required onchange="fillSlot(this)">
+          <option value="">Select…</option>
+          {% for s in slots %}
+          <option value="{{ s.start_time }}|{{ s.end_time }}">{{ s.start_time }} – {{ s.end_time }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <input type="hidden" name="start_time" id="id_start_time">
+      <input type="hidden" name="end_time" id="id_end_time">
+      <label>Full name <input name="guest_name" class="input" required></label>
+      <label>Email <input name="guest_email" type="email" class="input"></label>
+      <label>Phone <input name="guest_phone" class="input"></label>
+      <label>Subject <input name="title" class="input"></label>
+      <label>Message <textarea name="description" class="input" rows="3"></textarea></label>
+      <button type="submit" class="btn btn--primary">Request appointment</button>
+    </form>
+  </section>
+  {% elif selected_date %}
+  <p class="muted">No open slots on this date. Try another day.</p>
+  {% endif %}
+</main>
+<script>
+function fillSlot(sel) {
+  const v = sel.value.split('|');
+  document.getElementById('id_start_time').value = v[0] || '';
+  document.getElementById('id_end_time').value = v[1] || '';
+}
+</script>
+{% endblock %}

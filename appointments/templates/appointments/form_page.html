@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{{ page_header.title }}{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+<section class="panel" style="max-width:40rem">
+  <form method="post" class="stack">
+    {% csrf_token %}
+    {% ui_form form %}
+    <button type="submit" class="btn btn--primary">{{ submit_label }}</button>
+  </form>
+</section>
+{% endblock %}

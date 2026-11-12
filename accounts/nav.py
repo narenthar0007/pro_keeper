@@ -56,6 +56,10 @@ NAV_ICONS = {
         '<circle cx="12" cy="12" r="3"/>'
         '<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68 1.65 1.65 0 0 0 10 3.17V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
     ),
+    'appointments': (
+        '<rect x="3" y="5" width="18" height="16" rx="2"/>'
+        '<path d="M16 3v4M8 3v4M3 11h18"/><path d="M8 15h.01M12 15h.01M16 15h.01"/>'
+    ),
 }
 
 
@@ -74,6 +78,9 @@ def _item(key, label, url_name, icon, privilege=None, match=None, admin_only=Fal
 
 NAV_CATALOG = [
     _item('browse', 'Browse', 'public_listings', 'browse', privilege=None, match='/'),
+    _item('marketplace', 'Marketplace', 'marketplace_browse', 'marketing', privilege=None, match='/marketplace'),
+    _item('marketplace_my', 'My offers', 'marketplace_my_listings', 'marketing', privilege='marketplace_manage', match='/marketplace/my'),
+    _item('storefront', 'Business page', 'storefront_dashboard', 'properties', privilege='storefront_manage', match='/business'),
     _item('admin', 'Admin', 'staff_dashboard', 'admin', admin_only=True, match='/accounts/staff'),
     _item('dashboard', 'Dashboard', 'dashboard', 'dashboard', privilege='view_dashboard', match='/dashboard/'),
     _item('properties', 'Properties', 'my_properties', 'properties', privilege='manage_properties', match='/my-properties'),
@@ -119,6 +126,14 @@ NAV_CATALOG = [
     _item('hrms_leave_my', 'My leaves', 'hrms_leave_my', 'portal', privilege='hrms_leave_apply', match='/hrms/leave/my'),
     _item('hrms_leave_apply', 'Apply leave', 'hrms_leave_apply', 'calendar', privilege='hrms_leave_apply', match='/hrms/leave/apply'),
     _item('hrms_calendar', 'HRMS calendar', 'hrms_calendar', 'calendar', privilege='hrms_leave_calendar', match='/hrms/calendar'),
+    _item(
+        'appointments',
+        'Appointments',
+        'appointments_dashboard',
+        'appointments',
+        privilege='appointments_manage',
+        match='/appointments',
+    ),
     _item('settings', 'Settings', 'user_settings', 'settings', privilege='view_settings', match='/accounts/settings'),
 ]
 
@@ -127,6 +142,8 @@ def _is_active(path, match, key):
     path = path or ''
     if key == 'browse':
         return path == '/'
+    if key == 'marketplace':
+        return path.startswith('/marketplace')
     if key == 'admin':
         return path.startswith('/accounts/staff')
     if key == 'properties':
@@ -147,6 +164,8 @@ def _is_active(path, match, key):
         return path.startswith('/commissions')
     if key == 'settings':
         return path.startswith('/accounts/settings')
+    if key == 'appointments':
+        return path.startswith('/appointments')
     if key == 'hrms':
         return path == '/hrms/' or path == '/hrms'
     if key in ('hrms_regularize_mgr', 'hrms_regularize_emp'):
@@ -212,7 +231,7 @@ def get_nav_items(user, current_path='', brand=None):
             'hrms_holidays',
         ):
             continue
-        if not user.is_authenticated and raw['key'] != 'browse':
+        if not user.is_authenticated and raw['key'] not in ('browse', 'marketplace'):
             continue
         if raw['admin_only'] and not is_admin_user(user):
             continue

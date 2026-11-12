@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Request submitted{% endblock %}
+
+{% block content %}
+<main style="max-width:28rem;margin:3rem auto;text-align:center;padding:0 1rem">
+  <h1>Request submitted</h1>
+  <p>Your appointment request with <strong>{{ host_name }}</strong> is awaiting approval.</p>
+  <p class="meta">Reference: <strong>{{ reference }}</strong></p>
+</main>
+{% endblock %}

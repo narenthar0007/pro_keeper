@@ -69,6 +69,21 @@ class UserProfile(models.Model):
         null=True,
         help_text='Profile photo for header and account screens',
     )
+    can_manage_appointments = models.BooleanField(
+        default=False,
+        help_text='Allow this user to use the appointment booking module (in addition to role defaults).',
+    )
+    booking_slug = models.CharField(
+        max_length=64,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text='Public token segment for /book/<slug>/ (unset until generated).',
+    )
+    is_public_booking_active = models.BooleanField(
+        default=True,
+        help_text='When off, the public booking link shows as disabled.',
+    )
 
     def __str__(self):
         return f'{self.user.username} ({self.get_role_display()})'
@@ -358,9 +373,13 @@ DEFAULT_PRIVILEGES = [
     (UserProfile.ROLE_TENANT, 'send_messages', 'Message property owner', True),
     (UserProfile.ROLE_TENANT, 'pay_rent', 'Pay rent from portal', True),
     (UserProfile.ROLE_TENANT, 'save_listings', 'Save listings to shortlist', True),
+    (UserProfile.ROLE_TENANT, 'marketplace_browse', 'Browse marketplace', True),
     (UserProfile.ROLE_TENANT, 'view_dashboard', 'View owner dashboard', False),
     (UserProfile.ROLE_TENANT, 'manage_properties', 'Manage properties', False),
     (UserProfile.ROLE_OWNER, 'save_listings', 'Save listings to shortlist', True),
+    (UserProfile.ROLE_OWNER, 'marketplace_browse', 'Browse marketplace', True),
+    (UserProfile.ROLE_OWNER, 'marketplace_manage', 'Post marketplace listings', True),
+    (UserProfile.ROLE_OWNER, 'storefront_manage', 'Create business web pages', True),
     # Owner HRMS
     (UserProfile.ROLE_OWNER, 'hrms_access', 'Access HRMS module', True),
     (UserProfile.ROLE_OWNER, 'hrms_manage_employees', 'Manage employees', True),
@@ -392,6 +411,9 @@ DEFAULT_PRIVILEGES = [
     (UserProfile.ROLE_EMPLOYEE, 'hrms_apply_regularize_self', 'Apply own regularize', True),
     (UserProfile.ROLE_EMPLOYEE, 'hrms_leave_apply', 'Apply for leave', True),
     (UserProfile.ROLE_EMPLOYEE, 'hrms_leave_calendar', 'View HRMS leave calendar', True),
+    (UserProfile.ROLE_OWNER, 'appointments_manage', 'Manage appointments & public booking', True),
+    (UserProfile.ROLE_MANAGER, 'appointments_manage', 'Manage appointments & public booking', True),
+    (UserProfile.ROLE_EMPLOYEE, 'appointments_manage', 'Manage appointments & public booking', False),
 ]
 
 

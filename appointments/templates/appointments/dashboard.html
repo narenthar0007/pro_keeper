@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Appointments{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+{% ui_kpis kpis %}
+
+<section class="panel" style="margin-bottom:1rem">
+  <h2 class="panel__title">My booking link</h2>
+  <p class="muted">Status: {% if booking_active %}<strong class="text-ok">Active</strong>{% else %}<strong>Disabled</strong>{% endif %}</p>
+  <div id="booking-link" class="stack" style="gap:0.5rem">
+    <input type="text" readonly value="{{ booking_url }}" id="booking-url-input" class="input" style="width:100%;max-width:36rem">
+    <div class="btn-row">
+      <button type="button" class="btn btn--secondary" onclick="navigator.clipboard.writeText(document.getElementById('booking-url-input').value)">Copy link</button>
+      <form method="post" action="{% url 'appointments_toggle_link' %}">{% csrf_token %}
+        <button type="submit" class="btn btn--secondary">{% if booking_active %}Disable{% else %}Enable{% endif %} link</button>
+      </form>
+      <form method="post" action="{% url 'appointments_regenerate_link' %}">{% csrf_token %}
+        <button type="submit" class="btn btn--ghost" onclick="return confirm('Regenerate link? Old URLs will stop working.');">Regenerate</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+{% if pending %}
+<section class="panel panel--warn" style="margin-bottom:1rem">
+  <h2 class="panel__title">Pending requests ({{ pending|length }})</h2>
+  <ul class="plain-list">
+    {% for p in pending %}
+    <li>
+      <a href="{% url 'appointments_detail' p.pk %}">{{ p.guest_name }}</a>
+      — {{ p.appointment_date }} {{ p.start_time|time:"H:i" }} — {{ p.title }}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<form method="get" class="filter-bar panel" style="margin-bottom:1rem">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search…" class="input">
+  <select name="status" class="input">
+    <option value="">All statuses</option>
+    <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>Pending</option>
+    <option value="APPROVED" {% if status_filter == 'APPROVED' %}selected{% endif %}>Approved</option>
+    <option value="REJECTED" {% if status_filter == 'REJECTED' %}selected{% endif %}>Rejected</option>
+    <option value="CANCELLED" {% if status_filter == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+    <option value="COMPLETED" {% if status_filter == 'COMPLETED' %}selected{% endif %}>Completed</option>
+  </select>
+  <select name="range" class="input">
+    <option value="all" {% if range_filter == 'all' %}selected{% endif %}>All dates</option>
+    <option value="today" {% if range_filter == 'today' %}selected{% endif %}>Today</option>
+    <option value="week" {% if range_filter == 'week' %}selected{% endif %}>This week</option>
+    <option value="month" {% if range_filter == 'month' %}selected{% endif %}>This month</option>
+  </select>
+  <button type="submit" class="btn btn--secondary">Filter</button>
+</form>
+
+<section class="panel">
+  {% ui_table table %}
+</section>
+{% endblock %}

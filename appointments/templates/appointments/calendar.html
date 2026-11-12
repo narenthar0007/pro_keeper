@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Appointment calendar{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+<section class="panel">
+  <ul class="plain-list">
+    {% for a in appointments %}
+    <li>
+      <a href="{% url 'appointments_detail' a.pk %}"><strong>{{ a.appointment_date }}</strong> {{ a.start_time|time:"H:i" }}</a>
+      — {{ a.title }} ({{ a.get_status_display }})
+    </li>
+    {% empty %}
+    <li class="muted">No appointments in range.</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

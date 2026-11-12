@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Availability settings{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+
+<section class="panel" style="margin-bottom:1.5rem;max-width:40rem">
+  <h2 class="panel__title">Booking rules</h2>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    {% ui_form form=form submit_label="Save settings" %}
+  </form>
+</section>
+
+<section class="panel" style="max-width:48rem">
+  <h2 class="panel__title">Weekly availability</h2>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="save_availability">
+    <table class="data-table">
+      <thead><tr><th>Day</th><th>Available</th><th>Start</th><th>End</th></tr></thead>
+      <tbody>
+        {% for w in week_rows %}
+        <tr>
+          <td>{{ w.label }}</td>
+          <td><input type="checkbox" name="day_{{ w.index }}_enabled" {% if w.row %}checked{% endif %}></td>
+          <td><input type="time" name="day_{{ w.index }}_start" class="input" value="{% if w.row %}{{ w.row.start_time|time:'H:i' }}{% else %}09:00{% endif %}"></td>
+          <td><input type="time" name="day_{{ w.index }}_end" class="input" value="{% if w.row %}{{ w.row.end_time|time:'H:i' }}{% else %}17:00{% endif %}"></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button type="submit" class="btn btn--primary">Save weekly hours</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{{ appointment.title }}{% endblock %}
+
+{% block content %}
+{% ui_page_header page_header %}
+<section class="panel stack">
+  <dl class="detail-list">
+    <dt>Status</dt><dd>{{ appointment.get_status_display }}</dd>
+    <dt>Date</dt><dd>{{ appointment.appointment_date }} {{ appointment.start_time|time:"H:i" }} – {{ appointment.end_time|time:"H:i" }}</dd>
+    <dt>Visitor</dt><dd>{{ appointment.guest_name }}</dd>
+    <dt>Email</dt><dd>{{ appointment.guest_email|default:"—" }}</dd>
+    <dt>Phone</dt><dd>{{ appointment.guest_phone|default:"—" }}</dd>
+    <dt>Source</dt><dd>{{ appointment.get_booked_by_display }}</dd>
+    <dt>Type</dt><dd>{{ appointment.get_appointment_type_display }}</dd>
+    {% if appointment.description %}<dt>Notes</dt><dd>{{ appointment.description }}</dd>{% endif %}
+  </dl>
+  <div class="btn-row" id="approve">
+    {% if appointment.status == 'PENDING' %}
+    <form method="post" action="{% url 'appointments_approve' appointment.pk %}">{% csrf_token %}
+      <button type="submit" class="btn btn--primary">Approve</button>
+    </form>
+    <form method="post" action="{% url 'appointments_reject' appointment.pk %}" class="stack" style="flex:1">
+      {% csrf_token %}
+      <input type="text" name="reason" placeholder="Rejection reason (optional)" class="input">
+      <button type="submit" class="btn btn--secondary">Reject</button>
+    </form>
+    {% endif %}
+    {% if appointment.status == 'APPROVED' %}
+    <form method="post" action="{% url 'appointments_cancel' appointment.pk %}">{% csrf_token %}
+      <button type="submit" class="btn btn--ghost">Cancel appointment</button>
+    </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
